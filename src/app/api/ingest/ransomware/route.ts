@@ -1,7 +1,12 @@
 import { connection, NextResponse } from "next/server";
 import { ingestRansomware } from "@/lib/ingest/ransomware";
 
-/** Ingest waits ~60s between ransomware.live endpoints plus upsert/classify. */
+/**
+ * Ingest waits ~60s between ransomware.live endpoints plus upsert/classify.
+ * `ingestRansomware` uses try/catch/finally to mark `ingest_runs` error when the
+ * handler exits without a terminal status; a platform hard kill (SIGKILL at
+ * maxDuration) may still leave a row stuck in `running`.
+ */
 export const maxDuration = 300;
 
 function authorizeCron(request: Request): boolean {

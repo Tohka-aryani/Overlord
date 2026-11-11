@@ -26,6 +26,11 @@ export const RANSOMWARE_LIVE_MIN_INTERVAL_MS = 60_000;
 const MAX_429_ATTEMPTS = 5;
 /** Stop further Ollama calls after this many consecutive nulls (model down / missing). */
 const MAX_CONSECUTIVE_CLASSIFY_NULLS = 3;
+/** Cap classifyEntity calls per ingest run (serverless maxDuration budget). */
+export const MAX_CLASSIFY_PER_RUN = Math.max(
+  0,
+  Number.parseInt(process.env.MAX_CLASSIFY_PER_RUN ?? "5", 10) || 5,
+);
 
 export type IngestRansomwareResult = {
   source: "ransomware.live";
@@ -139,9 +144,10 @@ async function classifyNewVictims(
   let unclassified = 0;
   let consecutiveNulls = 0;
   let skipClassify = false;
+  let classifyCalls = 0;
 
   for (const id of insertedIds) {
-    if (skipClassify) {
+    if (skipClassify || classifyCalls >= MAX_CLASSIFY_PER_RUN) {
       unclassified += 1;
       continue;
     }
@@ -160,6 +166,7 @@ async function classifyNewVictims(
       row.claimUrl ? `Claim URL (do not fetch): ${row.claimUrl}` : null,
     ].filter(Boolean);
 
+    classifyCalls += 1;
     const result = await classifyEntity({
       title: row.victim,
       body: bodyParts.join("\n"),
@@ -223,6 +230,9 @@ export async function ingestRansomware(options?: {
     unclassified: 0,
   };
 
+  let runFinalized = false;
+  let partialCounts = { ...emptyCounts };
+
   try {
     const victimsPayload = await fetchRansomwareLive(
       `/countryvictims/${country}`,
@@ -236,6 +246,12 @@ export async function ingestRansomware(options?: {
     const victimRows = Array.isArray(victimsPayload) ? victimsPayload : [];
     const cyberRows = Array.isArray(cyberPayload) ? cyberPayload : [];
 
+    partialCounts = {
+      ...emptyCounts,
+      fetchedVictims: victimRows.length,
+      fetchedCyberattacks: cyberRows.length,
+    };
+
     const normalized: NormalizedVictim[] = [];
     const seen = new Set<string>();
 
@@ -246,7 +262,7 @@ export async function ingestRansomware(options?: {
       const key = victimKey(n);
       if (seen.has(key)) continue;
       seen.add(key);
-      normalized.push(n);
+      normalized.push({ ...n, country: n.country ?? country });
     }
 
     for (const row of cyberRows) {
@@ -256,7 +272,7 @@ export async function ingestRansomware(options?: {
       const key = victimKey(n);
       if (seen.has(key)) continue;
       seen.add(key);
-      normalized.push(n);
+      normalized.push({ ...n, country: n.country ?? country });
     }
 
     const { insertedIds, updated, upserted } = await upsertVictims(normalized);
@@ -271,6 +287,7 @@ export async function ingestRansomware(options?: {
       classified,
       unclassified,
     };
+    partialCounts = counts;
 
     await db
       .update(ingestRuns)
@@ -282,6 +299,7 @@ export async function ingestRansomware(options?: {
       })
       .where(eq(ingestRuns.id, run.id));
 
+    runFinalized = true;
     return {
       source: "ransomware.live",
       country,
@@ -296,18 +314,38 @@ export async function ingestRansomware(options?: {
       .set({
         finishedAt: new Date(),
         status: "error",
-        counts: emptyCounts,
+        counts: partialCounts,
         error: message,
       })
       .where(eq(ingestRuns.id, run.id));
 
+    runFinalized = true;
     return {
       source: "ransomware.live",
       country,
       status: "error",
       ingestRunId: run.id,
-      counts: emptyCounts,
+      counts: partialCounts,
       error: message,
     };
+  } finally {
+    if (!runFinalized) {
+      try {
+        await db
+          .update(ingestRuns)
+          .set({
+            finishedAt: new Date(),
+            status: "error",
+            counts: partialCounts,
+            error:
+              "Ingest ended before run was finalized (possible serverless timeout or abrupt termination)",
+          })
+          .where(
+            and(eq(ingestRuns.id, run.id), eq(ingestRuns.status, "running")),
+          );
+      } catch {
+        // Best effort — Vercel hard kill (SIGKILL) may skip finally entirely.
+      }
+    }
   }
 }
