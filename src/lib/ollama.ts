@@ -30,6 +30,9 @@ function ollamaModel(): string {
   return process.env.OLLAMA_MODEL || "qwen2.5:14b";
 }
 
+/** Wall-clock timeout for Ollama /api/chat during entity classification. */
+export const CLASSIFY_ENTITY_TIMEOUT_MS = 120_000;
+
 function extractJsonObject(text: string): unknown {
   const trimmed = text.trim();
   try {
@@ -64,6 +67,7 @@ export async function classifyEntity(
     const res = await fetch(`${ollamaBaseUrl()}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(CLASSIFY_ENTITY_TIMEOUT_MS),
       body: JSON.stringify({
         model: ollamaModel(),
         stream: false,
