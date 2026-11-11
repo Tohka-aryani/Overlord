@@ -45,5 +45,6 @@ next-env.d.ts
 # agent / local scratch
 .superpowers/
 
-# large / local datasets
-/data/
+# large / local datasets (keep data/README.md tracked)
+/data/**
+!/data/README.md

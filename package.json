@@ -11,9 +11,12 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:smoke": "tsx scripts/smoke-db.ts",
-    "ollama:smoke": "tsx scripts/smoke-ollama.ts"
+    "ollama:smoke": "tsx scripts/smoke-ollama.ts",
+    "public-data:download": "tsx scripts/download-public-data.ts",
+    "public-data:import": "tsx scripts/import-public-data.ts"
   },
   "dependencies": {
+    "@maxmind/geoip2-node": "^7.1.0",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.6",
     "postgres": "^4.1.0",
