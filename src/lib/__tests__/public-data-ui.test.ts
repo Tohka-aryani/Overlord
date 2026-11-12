@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   filterByCountry,
+  mapPreferMalaysia,
   preferredCountryFilter,
   uniqueCountries,
 } from "@/lib/public-data-ui";
@@ -55,5 +56,25 @@ describe("filterByCountry", () => {
 
   it("filters to MY case-insensitively", () => {
     expect(filterByCountry(rows, "MY").map((r) => r.id)).toEqual([1, 3]);
+  });
+});
+
+describe("mapPreferMalaysia", () => {
+  const mixed = [{ countryIso: "MY" }, { countryIso: "US" }];
+
+  it("is true when active filter is MY", () => {
+    expect(mapPreferMalaysia("MY", mixed, 0)).toBe(true);
+    expect(mapPreferMalaysia("MY", mixed, 3)).toBe(true);
+  });
+
+  it("is false for a non-MY filter even when actor has MY IPs", () => {
+    expect(mapPreferMalaysia("US", mixed, 0)).toBe(false);
+    expect(mapPreferMalaysia("US", mixed, 2)).toBe(false);
+  });
+
+  it("uses MY default on ALL only when there are no plotted points", () => {
+    expect(mapPreferMalaysia("ALL", mixed, 0)).toBe(true);
+    expect(mapPreferMalaysia("ALL", mixed, 1)).toBe(false);
+    expect(mapPreferMalaysia("ALL", [{ countryIso: "US" }], 0)).toBe(false);
   });
 });

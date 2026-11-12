@@ -43,3 +43,20 @@ export function filterByCountry<T extends IpCountryRow>(
     (r) => (r.countryIso ?? "").trim().toUpperCase() === scope,
   );
 }
+
+/**
+ * Leaflet empty-view fallback: bias toward Malaysia only when the active
+ * filter is MY, or ALL with no plotted points and MY would be the default chip.
+ * Non-MY filters must not center on Malaysia just because the actor also has MY IPs.
+ */
+export function mapPreferMalaysia(
+  country: string,
+  items: IpCountryRow[],
+  mapPointCount: number,
+): boolean {
+  const scope = country.trim().toUpperCase();
+  if (scope === "MY") return true;
+  if (mapPointCount > 0) return false;
+  if (scope === "ALL") return preferredCountryFilter(items) === "MY";
+  return false;
+}

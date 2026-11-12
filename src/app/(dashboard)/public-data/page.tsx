@@ -11,6 +11,7 @@ import {
 import type { ActorMapPoint } from "@/components/map/ActorMap";
 import {
   filterByCountry,
+  mapPreferMalaysia,
   preferredCountryFilter,
   uniqueCountries,
 } from "@/lib/public-data-ui";
@@ -78,6 +79,8 @@ export default function PublicDataPage() {
   const [country, setCountry] = useState<"ALL" | string>("ALL");
   const searchWrapRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadIpsAbortRef = useRef<AbortController | null>(null);
+  const loadIpsSeqRef = useRef(0);
 
   // Browse list for empty state / quick pick
   useEffect(() => {
@@ -144,15 +147,28 @@ export default function PublicDataPage() {
   }, []);
 
   const loadIps = useCallback(async (actor: ActorSummary) => {
+    loadIpsAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadIpsAbortRef.current = controller;
+    const requestId = actor.id;
+    const seq = ++loadIpsSeqRef.current;
+
     setIpsLoading(true);
     setIpsError(null);
     try {
       const res = await fetch(
         `/api/public-data/ips?actorId=${actor.id}&map=1`,
-        { cache: "no-store" },
+        { cache: "no-store", signal: controller.signal },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as IpsResponse;
+      if (
+        controller.signal.aborted ||
+        seq !== loadIpsSeqRef.current ||
+        data.actor.id !== requestId
+      ) {
+        return;
+      }
       setIps(data.items);
       setSelected({
         id: data.actor.id,
@@ -164,10 +180,14 @@ export default function PublicDataPage() {
       });
       setCountry(preferredCountryFilter(data.items));
     } catch (e) {
+      if (controller.signal.aborted) return;
+      if (seq !== loadIpsSeqRef.current) return;
       setIps([]);
       setIpsError(e instanceof Error ? e.message : "Failed to load IPs");
     } finally {
-      setIpsLoading(false);
+      if (seq === loadIpsSeqRef.current) {
+        setIpsLoading(false);
+      }
     }
   }, []);
 
@@ -200,12 +220,11 @@ export default function PublicDataPage() {
       }));
   }, [filteredIps]);
 
-  const preferMalaysia =
-    country === "MY" ||
-    countries.includes("MY") ||
-    preferredCountryFilter(ips) === "MY";
+  const preferMalaysia = mapPreferMalaysia(country, ips, mapPoints.length);
 
   const clearSelection = () => {
+    loadIpsAbortRef.current?.abort();
+    loadIpsSeqRef.current += 1;
     setSelected(null);
     setIps([]);
     setIpsError(null);
