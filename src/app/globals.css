@@ -1,11 +1,18 @@
 @import "tailwindcss";
 
 :root {
+  /* Night ops console — DESIGN.md */
   --bg: #12141a;
   --surface: #1a1d26;
+  --surface-raised: #222632;
+  --border: #2a2f3a;
   --text: #e8eaef;
   --muted: #8b90a0;
   --threat: #f5a524;
+  --threat-dim: #c4851c;
+  --ok: #5a9e7a;
+  --info: #6b8499;
+  --rail-width: 13.5rem;
   --background: var(--bg);
   --foreground: var(--text);
 }
@@ -14,7 +21,11 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-charcoal: var(--bg);
+  --color-surface: var(--surface);
   --color-threat: var(--threat);
+  --color-muted: var(--muted);
+  --color-ok: var(--ok);
+  --color-info: var(--info);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -23,4 +34,29 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Ops rail active underline — hierarchy motion only */
+@keyframes rail-focus {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.ops-rail-link[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0.35rem;
+  width: 0.2rem;
+  height: 1.1rem;
+  background: var(--threat);
+  border-radius: 1px;
+  transform-origin: center;
+  animation: rail-focus 160ms ease-out;
 }
