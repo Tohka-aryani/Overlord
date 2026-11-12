@@ -31,14 +31,15 @@ const MY_CENTER: [number, number] = COUNTRY_COORDS.MY
 
 const WORLD_CENTER: [number, number] = [20, 20];
 
+/** Raster dark_all — requires ?key= from https://carto.com/basemaps/apikey */
 const CARTO_DARK_ALL =
-  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png";
 
 /** CARTO basemaps require an API key (NEXT_PUBLIC_CARTO_API_KEY). */
 function cartoDarkAllUrl(): string {
   const key = process.env.NEXT_PUBLIC_CARTO_API_KEY?.trim();
   if (!key) return CARTO_DARK_ALL;
-  return `${CARTO_DARK_ALL}?apikey=${encodeURIComponent(key)}`;
+  return `${CARTO_DARK_ALL}?key=${encodeURIComponent(key)}`;
 }
 
 function isMy(iso: string | null): boolean {
