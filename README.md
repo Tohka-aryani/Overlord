@@ -29,6 +29,13 @@ Full stack (web + db):
 docker compose up --build
 ```
 
+On first use (and after any new migration files), apply schema from the host — the `web` container does not run migrations automatically:
+
+```bash
+npm install   # if you have not already
+npm run db:migrate
+```
+
 ## Env
 
 | Variable | Purpose |
@@ -52,9 +59,10 @@ Classification expects a reachable Ollama host on the LAN, not a cloud API:
 Ingest routes require `CRON_SECRET`. Prefer the `x-cron-secret` header:
 
 ```bash
-# Ransomware (default country=MY; optional ?country=ALL)
+# Ransomware (ISO2 country only; default MY — not ALL)
 curl -sS -X POST "http://localhost:3000/api/ingest/ransomware" \
   -H "x-cron-secret: $CRON_SECRET"
+# Optional: ?country=SG (any ransomware.live ISO2, e.g. MY, SG, US)
 
 # News (Google News MY keyword RSS)
 curl -sS -X POST "http://localhost:3000/api/ingest/news" \
@@ -70,7 +78,8 @@ curl -sS -X POST "http://localhost:3000/api/ingest/ransomware" \
 
 Archive reads (no secret):
 
-- `GET /api/ransomware?country=MY`
+- `GET /api/ransomware?country=MY` — default dashboard scope
+- `GET /api/ransomware?country=ALL` — global archive (Ransomware UI “Global” toggle); read-only, not used for ingest
 - `GET /api/news`
 
 ## Public Data import
@@ -103,6 +112,7 @@ GeoLite2 Country MMDB is downloaded into `data/` for ISO enrichment but **not** 
 ## Notes
 
 - Local / LAN v1 only — no public auth yet
+- `GET /api/news` and `GET /api/ransomware?country=ALL` return the full archive with no pagination or cap (acceptable on LAN v1)
 - Never fetch Tor `claim_url` values (stored as text only)
 - Telegram tab is a **Coming soon** placeholder in v1
 - `data/` is gitignored (large binaries / username dumps)
