@@ -72,6 +72,11 @@ export default function RansomwarePage() {
     void load(scope);
   }, [scope, load]);
 
+  // Clear drawer when scope/filters change so a stale selection cannot reopen.
+  useEffect(() => {
+    setSelectedId(null);
+  }, [scope, threatFilter, categoryFilter]);
+
   const filtered = useMemo(() => {
     return items.filter((item) => {
       const threat = item.classification?.threatLevel ?? "Unclassified";
@@ -216,9 +221,6 @@ export default function RansomwarePage() {
                       {item.classification?.category ? (
                         <p className="mt-0.5 text-xs text-[var(--muted)]">
                           {item.classification.category}
-                          {item.classification.malaysiaRelevance
-                            ? ` · ${item.classification.malaysiaRelevance}`
-                            : ""}
                         </p>
                       ) : null}
                     </td>

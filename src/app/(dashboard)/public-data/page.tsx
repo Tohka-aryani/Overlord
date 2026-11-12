@@ -62,6 +62,9 @@ type IpsResponse = {
 const inputClass =
   "w-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--muted)]";
 
+const selectClass =
+  "border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 font-mono text-xs uppercase tracking-wider text-[var(--text)] outline-none focus:border-[var(--muted)]";
+
 export default function PublicDataPage() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<ActorSummary[]>([]);
@@ -214,9 +217,8 @@ export default function PublicDataPage() {
     <main className="flex min-h-full flex-1 flex-col">
       <header className="border-b border-[var(--border)] px-8 py-5">
         <h1 className="text-xl font-semibold tracking-tight">Public Data</h1>
-        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
-          Actor search + dark basemap — DarkForums IPs and forum usernames,
-          Malaysia-first when present.
+        <p className="mt-1 max-w-xl text-sm text-[var(--muted)]">
+          Actor search and dark basemap — Malaysia-first when ISO data exists.
         </p>
       </header>
 
@@ -252,7 +254,7 @@ export default function PublicDataPage() {
                 <ul
                   id="actor-search-list"
                   role="listbox"
-                  className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto border border-[var(--border)] bg-[var(--surface)] shadow-lg"
+                  className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto border border-[var(--border)] bg-[var(--surface)]"
                 >
                   {searchLoading && suggestions.length === 0 && (
                     <li className="px-3 py-2 text-sm text-[var(--muted)]">
@@ -280,40 +282,30 @@ export default function PublicDataPage() {
               )}
             </div>
 
-            <div>
-              <p className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
+            <label className="block">
+              <span className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
                 Country
-              </p>
-              <div
-                className="mt-1.5 flex flex-wrap gap-3"
-                role="group"
+              </span>
+              <select
+                className={`mt-1.5 block ${selectClass}`}
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
                 aria-label="Country filter"
+                disabled={!selected && countries.length === 0}
               >
-                <CountryChip
-                  label="ALL"
-                  active={country === "ALL"}
-                  onClick={() => setCountry("ALL")}
-                />
+                <option value="ALL">All</option>
                 {(countries.includes("MY") || country === "MY") && (
-                  <CountryChip
-                    label="MY"
-                    active={country === "MY"}
-                    highlight
-                    onClick={() => setCountry("MY")}
-                  />
+                  <option value="MY">MY</option>
                 )}
                 {countries
                   .filter((c) => c !== "MY")
                   .map((c) => (
-                    <CountryChip
-                      key={c}
-                      label={c}
-                      active={country === c}
-                      onClick={() => setCountry(c)}
-                    />
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
-              </div>
-            </div>
+              </select>
+            </label>
           </div>
 
           <div className="relative min-h-[18rem] flex-1 border-b border-[var(--border)] lg:min-h-0">
@@ -323,18 +315,14 @@ export default function PublicDataPage() {
               className="absolute inset-0 h-full w-full"
             />
             {!selected && (
-              <div className="pointer-events-none absolute inset-x-0 top-4 z-[400] flex justify-center px-4">
-                <p className="bg-[var(--bg)]/80 px-3 py-1.5 text-sm text-[var(--muted)] backdrop-blur-sm">
-                  Select an actor to plot IPs
-                </p>
-              </div>
+              <p className="pointer-events-none absolute inset-x-0 top-4 z-[400] px-8 text-sm text-[var(--muted)]">
+                Select an actor to plot IPs
+              </p>
             )}
             {selected && ipsLoading && (
-              <div className="pointer-events-none absolute inset-x-0 top-4 z-[400] flex justify-center px-4">
-                <p className="bg-[var(--bg)]/80 px-3 py-1.5 text-sm text-[var(--muted)]">
-                  Loading IPs…
-                </p>
-              </div>
+              <p className="pointer-events-none absolute inset-x-0 top-4 z-[400] px-8 text-sm text-[var(--muted)]">
+                Loading IPs…
+              </p>
             )}
           </div>
 
@@ -495,36 +483,6 @@ export default function PublicDataPage() {
   );
 }
 
-function CountryChip({
-  label,
-  active,
-  highlight,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  highlight?: boolean;
-  onClick: () => void;
-}) {
-  const base =
-    "font-mono text-xs uppercase tracking-wider transition-colors";
-  const color = active
-    ? highlight || label === "MY"
-      ? "text-[var(--threat)]"
-      : "text-[var(--text)]"
-    : "text-[var(--muted)] hover:text-[var(--text)]";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`${base} ${color}`}
-      aria-pressed={active}
-    >
-      {label}
-    </button>
-  );
-}
-
 function DetailRow({
   label,
   children,
@@ -535,17 +493,17 @@ function DetailRow({
   mono?: boolean;
 }) {
   return (
-    <div className="border-b border-[var(--border)]/70 py-3">
-      <dt className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
+    <>
+      <dt className="border-b border-transparent pt-3 text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
         {label}
       </dt>
       <dd
-        className={`mt-1 break-words text-sm text-[var(--text)] ${
+        className={`mt-1 border-b border-[var(--border)]/70 pb-3 break-words text-sm text-[var(--text)] ${
           mono ? "font-mono text-xs tabular-nums" : ""
         }`}
       >
         {children}
       </dd>
-    </div>
+    </>
   );
 }

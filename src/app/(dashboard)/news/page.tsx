@@ -66,6 +66,11 @@ export default function NewsPage() {
     void load();
   }, [load]);
 
+  // Clear drawer when filters change so a stale selection cannot reopen.
+  useEffect(() => {
+    setSelectedId(null);
+  }, [threatFilter, categoryFilter]);
+
   const filtered = useMemo(() => {
     return items.filter((item) => {
       const threat = item.classification?.threatLevel ?? "Unclassified";
@@ -158,34 +163,24 @@ export default function NewsPage() {
                     {formatWhen(item.publishedAt)}
                   </time>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <ThreatBadge level={item.classification?.threatLevel} />
-                      {item.classification?.category ? (
-                        <span className="text-xs text-[var(--muted)]">
-                          {item.classification.category}
-                        </span>
-                      ) : null}
-                    </div>
+                    <ThreatBadge level={item.classification?.threatLevel} />
                     <p className="mt-1 text-sm text-[var(--text)]">{item.title}</p>
                     <p className="mt-1 text-xs text-[var(--muted)]">
+                      {item.classification?.category
+                        ? `${item.classification.category} · `
+                        : null}
                       {item.keywordHit ? (
-                        <>
-                          Keyword{" "}
-                          <span className="font-mono text-[var(--text)]/80">
-                            {item.keywordHit}
-                          </span>
-                        </>
+                        <span className="font-mono text-[var(--text)]/80">
+                          {item.keywordHit}
+                        </span>
                       ) : (
-                        "No keyword recorded"
+                        "—"
                       )}
                       {item.source ? (
                         <>
                           {" · "}
                           <span className="font-mono">{item.source}</span>
                         </>
-                      ) : null}
-                      {item.classification?.malaysiaRelevance ? (
-                        <> · {item.classification.malaysiaRelevance}</>
                       ) : null}
                     </p>
                   </div>

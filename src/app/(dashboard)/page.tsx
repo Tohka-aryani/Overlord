@@ -99,11 +99,11 @@ async function OverviewBody() {
           <div>
             <h2 className="text-lg font-medium tracking-tight">Needs attention</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Ranked by threat, then recency. Open a tab to drill in.
+              Ranked by threat, then recency.
             </p>
           </div>
-          <p className="font-mono text-xs text-[var(--muted)]">
-            {data.needsAttention.length} shown
+          <p className="font-mono text-xs tabular-nums text-[var(--muted)]">
+            {data.needsAttention.length}
           </p>
         </header>
 
@@ -172,9 +172,8 @@ export default function OverviewPage() {
     <main className="flex min-h-full flex-1 flex-col">
       <header className="border-b border-[var(--border)] px-8 py-5">
         <h1 className="text-xl font-semibold tracking-tight">Overview</h1>
-        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
-          Malaysia-first pulse from the local archive — counts, ingest health, and
-          what needs attention.
+        <p className="mt-1 max-w-xl text-sm text-[var(--muted)]">
+          Malaysia-first archive: counts, ingest health, needs attention.
         </p>
       </header>
       <Suspense fallback={<OverviewFallback />}>

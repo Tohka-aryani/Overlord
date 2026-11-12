@@ -86,20 +86,20 @@ type DetailFieldProps = {
   mono?: boolean;
 };
 
-/** Label / value row for drawer bodies. */
+/** Label / value row for drawer bodies. Valid dt/dd pair (no wrapping div). */
 export function DetailField({ label, children, mono }: DetailFieldProps) {
   return (
-    <div className="border-b border-[var(--border)]/70 py-3">
-      <dt className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
+    <>
+      <dt className="border-b border-transparent pt-3 text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
         {label}
       </dt>
       <dd
-        className={`mt-1 break-words text-sm text-[var(--text)] ${
+        className={`mt-1 border-b border-[var(--border)]/70 pb-3 break-words text-sm text-[var(--text)] ${
           mono ? "font-mono text-xs tabular-nums" : ""
         }`}
       >
         {children}
       </dd>
-    </div>
+    </>
   );
 }
