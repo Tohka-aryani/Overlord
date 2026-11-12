@@ -45,6 +45,7 @@ npm run db:migrate
 | `OLLAMA_MODEL` | Classifier model id (default `qwen2.5:14b`) |
 | `IPINFO_TOKEN` | Optional IP enrichment (`/api/public-data/ip-detail`) |
 | `CRON_SECRET` | Protects ingest trigger routes (`x-cron-secret` or `Authorization: Bearer`) |
+| `NEXT_PUBLIC_CARTO_API_KEY` | CARTO basemap tiles for Public Data map (required to clear “API KEY REQUIRED” watermark) |
 
 ### Ollama (LAN)
 
