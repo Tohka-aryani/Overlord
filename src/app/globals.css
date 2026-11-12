@@ -60,3 +60,19 @@ body {
   transform-origin: center;
   animation: rail-focus 160ms ease-out;
 }
+
+/* Detail drawer enter — hierarchy motion only */
+@keyframes drawer-enter {
+  from {
+    transform: translateX(100%);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.detail-drawer {
+  animation: drawer-enter 180ms ease-out;
+}

@@ -15,30 +15,42 @@ type LatestClassification = {
   classifiedAt: Date;
 };
 
+const victimColumns = {
+  id: ransomwareVictims.id,
+  victim: ransomwareVictims.victim,
+  group: ransomwareVictims.group,
+  country: ransomwareVictims.country,
+  sector: ransomwareVictims.sector,
+  attackDate: ransomwareVictims.attackDate,
+  claimUrl: ransomwareVictims.claimUrl,
+  discoveredAt: ransomwareVictims.discoveredAt,
+} as const;
+
 export async function GET(request: Request) {
   // Opt into request-time rendering (Next 16 cacheComponents).
   await connection();
 
   const url = new URL(request.url);
   const country = (url.searchParams.get("country") ?? "MY").toUpperCase();
+  // ALL / * = optional global archive (MY remains default).
+  const filterCountry = country !== "ALL" && country !== "*";
 
-  const victims = await db
-    .select({
-      id: ransomwareVictims.id,
-      victim: ransomwareVictims.victim,
-      group: ransomwareVictims.group,
-      country: ransomwareVictims.country,
-      sector: ransomwareVictims.sector,
-      attackDate: ransomwareVictims.attackDate,
-      claimUrl: ransomwareVictims.claimUrl,
-      discoveredAt: ransomwareVictims.discoveredAt,
-    })
-    .from(ransomwareVictims)
-    .where(eq(ransomwareVictims.country, country))
-    .orderBy(
-      desc(ransomwareVictims.attackDate),
-      desc(ransomwareVictims.discoveredAt),
-    );
+  const victims = filterCountry
+    ? await db
+        .select(victimColumns)
+        .from(ransomwareVictims)
+        .where(eq(ransomwareVictims.country, country))
+        .orderBy(
+          desc(ransomwareVictims.attackDate),
+          desc(ransomwareVictims.discoveredAt),
+        )
+    : await db
+        .select(victimColumns)
+        .from(ransomwareVictims)
+        .orderBy(
+          desc(ransomwareVictims.attackDate),
+          desc(ransomwareVictims.discoveredAt),
+        );
 
   const latestByEntity = new Map<number, LatestClassification>();
 
