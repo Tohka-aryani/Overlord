@@ -8,6 +8,7 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import { COUNTRY_COORDS } from "@/lib/geo/country-centroids";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 export type ActorMapPoint = {
   id: number;
@@ -23,6 +24,8 @@ type ActorMapProps = {
   /** When true, bias empty / default view toward Malaysia. */
   preferMalaysia?: boolean;
   className?: string;
+  /** Optional actor label shown in popups. */
+  actorName?: string | null;
 };
 
 const MY_CENTER: [number, number] = COUNTRY_COORDS.MY
@@ -31,15 +34,16 @@ const MY_CENTER: [number, number] = COUNTRY_COORDS.MY
 
 const WORLD_CENTER: [number, number] = [20, 20];
 
-/** Raster dark_all — requires ?key= from https://carto.com/basemaps/apikey */
-const CARTO_DARK_ALL =
+const CARTO_DARK =
   "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png";
+const CARTO_LIGHT =
+  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
-/** CARTO basemaps require an API key (NEXT_PUBLIC_CARTO_API_KEY). */
-function cartoDarkAllUrl(): string {
+function cartoUrl(style: "dark" | "light"): string {
+  const base = style === "dark" ? CARTO_DARK : CARTO_LIGHT;
   const key = process.env.NEXT_PUBLIC_CARTO_API_KEY?.trim();
-  if (!key) return CARTO_DARK_ALL;
-  return `${CARTO_DARK_ALL}?key=${encodeURIComponent(key)}`;
+  if (!key) return base;
+  return `${base}?key=${encodeURIComponent(key)}`;
 }
 
 function isMy(iso: string | null): boolean {
@@ -54,23 +58,58 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Cluster layer — imperative so leaflet.markercluster owns child markers. */
-function ClusteredPoints({ points }: { points: ActorMapPoint[] }) {
+function popupHtml(p: ActorMapPoint, actorName?: string | null): string {
+  const my = isMy(p.countryIso);
+  const countryName =
+    p.countryIso && COUNTRY_COORDS[p.countryIso.toUpperCase()]
+      ? p.countryIso.toUpperCase()
+      : p.countryIso?.toUpperCase() ?? "—";
+  const actor = actorName
+    ? `<div class="ol-map-popup__actor">${escapeHtml(actorName)}</div>`
+    : "";
+  const host = p.hostname
+    ? `<div class="ol-map-popup__row"><span>Host</span><code>${escapeHtml(p.hostname)}</code></div>`
+    : "";
+  return `<div class="ol-map-popup">
+    ${actor}
+    <div class="ol-map-popup__ip"><code>${escapeHtml(p.ip)}</code></div>
+    <div class="ol-map-popup__meta">
+      <span class="ol-map-popup__pill${my ? " ol-map-popup__pill--my" : ""}">${escapeHtml(countryName)}</span>
+      <span class="ol-map-popup__muted">${my ? "Malaysia watch" : "Centroid plot"}</span>
+    </div>
+    ${host}
+    <div class="ol-map-popup__row"><span>Lat / Lon</span><code>${p.lat.toFixed(3)}, ${p.lon.toFixed(3)}</code></div>
+    <p class="ol-map-popup__note">Country-centroid jitter — not street-level geo.</p>
+  </div>`;
+}
+
+function ClusteredPoints({
+  points,
+  actorName,
+}: {
+  points: ActorMapPoint[];
+  actorName?: string | null;
+}) {
   const map = useMap();
 
   useEffect(() => {
     const group = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      maxClusterRadius: 48,
+      showCoverageOnHover: true,
+      maxClusterRadius: 42,
       spiderfyOnMaxZoom: true,
+      zoomToBoundsOnClick: true,
+      spiderLegPolylineOptions: {
+        weight: 1.5,
+        color: "#c45c26",
+        opacity: 0.55,
+      },
       iconCreateFunction(cluster) {
         const count = cluster.getChildCount();
         const size = count < 10 ? "sm" : count < 50 ? "md" : "lg";
-        const dim =
-          size === "sm" ? 28 : size === "md" ? 36 : 44;
+        const dim = size === "sm" ? 32 : size === "md" ? 40 : 48;
         return L.divIcon({
           html: `<span>${count}</span>`,
-          className: `raven-cluster raven-cluster--${size}`,
+          className: `ol-cluster ol-cluster--${size}`,
           iconSize: L.point(dim, dim),
         });
       },
@@ -78,22 +117,24 @@ function ClusteredPoints({ points }: { points: ActorMapPoint[] }) {
 
     for (const p of points) {
       const my = isMy(p.countryIso);
-      const marker = L.circleMarker([p.lat, p.lon], {
-        radius: my ? 7 : 5,
-        color: my ? "#f5a524" : "#6b8499",
-        weight: my ? 2 : 1,
-        fillColor: my ? "#f5a524" : "#8b90a0",
-        fillOpacity: my ? 0.85 : 0.55,
+      const icon = L.divIcon({
+        className: `ol-pin${my ? " ol-pin--my" : ""}`,
+        html: `<span class="ol-pin__core"></span><span class="ol-pin__ring"></span>`,
+        iconSize: L.point(18, 18),
+        iconAnchor: L.point(9, 9),
+        popupAnchor: L.point(0, -10),
       });
-      const host = p.hostname
-        ? `<br/><span class="raven-map-muted">${escapeHtml(p.hostname)}</span>`
-        : "";
-      const iso = p.countryIso
-        ? `<br/><span class="raven-map-iso">${escapeHtml(p.countryIso)}</span>`
-        : "";
-      marker.bindPopup(
-        `<div class="raven-map-popup"><code>${escapeHtml(p.ip)}</code>${iso}${host}</div>`,
-      );
+      const marker = L.marker([p.lat, p.lon], { icon });
+      marker.bindPopup(popupHtml(p, actorName), {
+        className: "ol-leaflet-popup",
+        maxWidth: 280,
+        minWidth: 200,
+        closeButton: true,
+        autoPanPadding: L.point(48, 48),
+      });
+      marker.on("mouseover", () => {
+        marker.openPopup();
+      });
       group.addLayer(marker);
     }
 
@@ -101,7 +142,7 @@ function ClusteredPoints({ points }: { points: ActorMapPoint[] }) {
     return () => {
       map.removeLayer(group);
     };
-  }, [map, points]);
+  }, [map, points, actorName]);
 
   return null;
 }
@@ -127,21 +168,33 @@ function FitBounds({
       points.map((p) => [p.lat, p.lon] as [number, number]),
     );
     if (bounds.isValid()) {
-      map.fitBounds(bounds.pad(0.25), { maxZoom: 6 });
+      map.fitBounds(bounds.pad(0.28), { maxZoom: 6, animate: true });
     }
   }, [map, points, preferMalaysia]);
 
   return null;
 }
 
+function ThemedTiles() {
+  const { theme } = useTheme();
+  const style = theme === "day" ? "light" : "dark";
+  return (
+    <TileLayer
+      key={style}
+      url={cartoUrl(style)}
+      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    />
+  );
+}
+
 /**
- * Dark basemap + clustered actor IP points (country-centroid jitter).
- * Client-only — load via next/dynamic with ssr:false from a Client Component.
+ * Interactive dark/light basemap + clustered IP pins with rich popups.
  */
 export default function ActorMap({
   points,
   preferMalaysia = true,
   className = "",
+  actorName = null,
 }: ActorMapProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -150,8 +203,10 @@ export default function ActorMap({
   }, []);
 
   const key = useMemo(
-    () => points.map((p) => `${p.id}:${p.lat}:${p.lon}`).join("|") || "empty",
-    [points],
+    () =>
+      `${actorName ?? ""}|` +
+      (points.map((p) => `${p.id}:${p.lat}:${p.lon}`).join("|") || "empty"),
+    [points, actorName],
   );
 
   if (!mounted) {
@@ -166,9 +221,7 @@ export default function ActorMap({
   }
 
   return (
-    <div
-      className={`raven-actor-map relative isolate min-h-[16rem] ${className}`}
-    >
+    <div className={`ol-actor-map relative isolate min-h-[16rem] ${className}`}>
       <MapContainer
         center={preferMalaysia ? MY_CENTER : WORLD_CENTER}
         zoom={preferMalaysia ? 5 : 2}
@@ -176,11 +229,8 @@ export default function ActorMap({
         scrollWheelZoom
         attributionControl={false}
       >
-        <TileLayer
-          url={cartoDarkAllUrl()}
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        />
-        <ClusteredPoints key={key} points={points} />
+        <ThemedTiles />
+        <ClusteredPoints key={key} points={points} actorName={actorName} />
         <FitBounds points={points} preferMalaysia={preferMalaysia} />
       </MapContainer>
       <p className="pointer-events-none absolute bottom-1 right-2 z-[500] font-mono text-[0.55rem] uppercase tracking-wider text-[var(--muted)]/70">

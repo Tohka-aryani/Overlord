@@ -1,43 +1,68 @@
 @import "tailwindcss";
 
-:root {
-  /* Night ops console — DESIGN.md */
-  --bg: #12141a;
-  --surface: #1a1d26;
-  --surface-raised: #222632;
-  --border: #2a2f3a;
-  --text: #e8eaef;
-  --muted: #8b90a0;
-  --threat: #f5a524;
-  --threat-dim: #c4851c;
-  --ok: #5a9e7a;
-  --info: #6b8499;
-  --rail-width: 13.5rem;
+/* Overlord — industrial ops console (Design with Intent + Impeccable) */
+
+:root,
+html[data-theme="night"] {
+  --bg: #0f1210;
+  --surface: #171c18;
+  --surface-raised: #1f2621;
+  --border: #2a332c;
+  --border-strong: #3d4a40;
+  --text: #e7ece7;
+  --muted: #8a968c;
+  --accent: #d9773a;
+  --accent-contrast: #140e0a;
+  --threat: #e8a03a;
+  --threat-dim: #b07828;
+  --ok: #5d9a72;
+  --info: #6a8a9a;
   --background: var(--bg);
   --foreground: var(--text);
+  color-scheme: dark;
+}
+
+html[data-theme="day"] {
+  --bg: #f3efe6;
+  --surface: #faf7f0;
+  --surface-raised: #ffffff;
+  --border: #d9d2c4;
+  --border-strong: #b8ae9c;
+  --text: #1a1f1b;
+  --muted: #667066;
+  --accent: #b4531a;
+  --accent-contrast: #fff8f0;
+  --threat: #b4531a;
+  --threat-dim: #8a4014;
+  --ok: #2f6b45;
+  --info: #3d6578;
+  --background: var(--bg);
+  --foreground: var(--text);
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-charcoal: var(--bg);
   --color-surface: var(--surface);
   --color-threat: var(--threat);
   --color-muted: var(--muted);
   --color-ok: var(--ok);
   --color-info: var(--info);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in oklab, var(--accent) 8%, transparent), transparent 55%),
+    var(--bg);
   color: var(--text);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 
-/* Ops rail active underline — hierarchy motion only */
-@keyframes rail-focus {
+/* Top nav active underline */
+@keyframes nav-focus {
   from {
     transform: scaleX(0);
     opacity: 0;
@@ -48,20 +73,18 @@ body {
   }
 }
 
-.ops-rail-link[data-active="true"]::after {
+.top-nav-link[data-active="true"]::after {
   content: "";
   position: absolute;
-  left: 0;
-  bottom: 0.35rem;
-  width: 0.2rem;
-  height: 1.1rem;
-  background: var(--threat);
-  border-radius: 1px;
-  transform-origin: center;
-  animation: rail-focus 160ms ease-out;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.2rem;
+  height: 2px;
+  background: var(--accent);
+  transform-origin: left center;
+  animation: nav-focus 160ms ease-out;
 }
 
-/* Detail drawer enter — hierarchy motion only */
 @keyframes drawer-enter {
   from {
     transform: translateX(100%);
@@ -77,78 +100,199 @@ body {
   animation: drawer-enter 180ms ease-out;
 }
 
-/* Public Data — Leaflet night ops map */
-.raven-actor-map .leaflet-container {
+/* —— Map —— */
+.ol-actor-map .leaflet-container {
   background: var(--bg);
   font: inherit;
 }
 
-.raven-actor-map .leaflet-control-zoom a {
+.ol-actor-map .leaflet-control-zoom a {
   background: var(--surface) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-.raven-actor-map .leaflet-control-zoom a:hover {
+.ol-actor-map .leaflet-control-zoom a:hover {
   background: var(--surface-raised) !important;
 }
 
-.raven-actor-map .leaflet-popup-content-wrapper {
-  background: var(--surface);
-  color: var(--text);
-  border-radius: 2px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-}
-
-.raven-actor-map .leaflet-popup-tip {
-  background: var(--surface);
-}
-
-.raven-actor-map .leaflet-popup-content {
-  margin: 0.65rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-.raven-map-popup code {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 0.75rem;
-}
-
-.raven-map-iso {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  color: var(--threat);
-}
-
-.raven-map-muted {
-  color: var(--muted);
-  font-size: 0.7rem;
-}
-
-.raven-cluster {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
+.ol-leaflet-popup .leaflet-popup-content-wrapper {
   background: var(--surface-raised);
-  border: 1px solid var(--threat-dim);
-  color: var(--threat);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 0.7rem;
-  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  box-shadow: 0 12px 32px color-mix(in oklab, #000 35%, transparent);
+  padding: 0;
+}
+
+.ol-leaflet-popup .leaflet-popup-tip {
+  background: var(--surface-raised);
+  border: none;
   box-shadow: none;
 }
 
-.raven-cluster span {
-  line-height: 1;
+.ol-leaflet-popup .leaflet-popup-content {
+  margin: 0;
+  min-width: 12rem;
 }
 
-.raven-cluster--md {
+.ol-leaflet-popup a.leaflet-popup-close-button {
+  color: var(--muted) !important;
+  top: 6px !important;
+  right: 6px !important;
+}
+
+.ol-map-popup {
+  padding: 0.85rem 1rem 0.75rem;
+}
+
+.ol-map-popup__actor {
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.35rem;
+}
+
+.ol-map-popup__ip code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ol-map-popup__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.ol-map-popup__pill {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--border-strong);
+  color: var(--muted);
+}
+
+.ol-map-popup__pill--my {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ol-map-popup__muted {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.ol-map-popup__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.45rem;
+  font-size: 0.7rem;
+}
+
+.ol-map-popup__row span {
+  color: var(--muted);
+}
+
+.ol-map-popup__row code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: var(--text);
+  word-break: break-all;
+  text-align: right;
+}
+
+.ol-map-popup__note {
+  margin: 0.65rem 0 0;
+  font-size: 0.6rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.ol-pin {
+  background: transparent !important;
+  border: none !important;
+}
+
+.ol-pin__core {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 5px;
+  border-radius: 1px;
+  background: var(--info);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--bg) 80%, transparent);
+}
+
+.ol-pin__ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in oklab, var(--info) 55%, transparent);
+  border-radius: 50%;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.ol-pin--my .ol-pin__core {
+  background: var(--accent);
+  width: 9px;
+  height: 9px;
+  margin: 4.5px;
+}
+
+.ol-pin--my .ol-pin__ring {
+  border-color: var(--accent);
+  animation: pin-pulse 2.4s ease-out infinite;
+}
+
+@keyframes pin-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.ol-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  background: var(--surface-raised);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.ol-cluster--md {
   font-size: 0.75rem;
 }
 
-.raven-cluster--lg {
-  font-size: 0.8rem;
-  border-color: var(--threat);
+.ol-cluster--lg {
+  font-size: 0.85rem;
+  background: color-mix(in oklab, var(--accent) 18%, var(--surface-raised));
+}
+
+/* Needs-attention row hover */
+.ol-attn-row {
+  transition: background-color 120ms ease;
+}
+
+.ol-attn-row:hover,
+.ol-attn-row:focus-within {
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
 }

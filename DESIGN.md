@@ -1,44 +1,43 @@
-# DESIGN.md — Night ops console
+# DESIGN.md — Overlord
 
 ## Direction
 
-**Night ops console** for Malaysia CTI: charcoal base, amber threat accent, left **ops rail** + main stage. Brand **RAVEN · MY** is a chrome-level identity signal, not an eyebrow.
+**Industrial overwatch console** for Malaysia CTI. Charcoal (Night) / warm paper (Day). Accent is burnt amber — threat and brand, not purple glow. Brand **Overlord** is chrome-level identity (logo + wordmark), not an eyebrow.
+
+Design systems referenced: [Design with Intent](https://designwithintent.ai/) (autonomy, systems over screens, evidence) and [Impeccable](https://impeccable.style/) (anti-slop craft).
 
 ## Tokens
 
-| Token | Role | Guidance |
-| --- | --- | --- |
-| `--bg` / charcoal | App base | Near-black charcoal, not pure `#000` or purple-tinted dark |
-| `--surface` | Stage panels | Slightly lifted charcoal for tables / drawers |
-| `--text` | Primary copy | High-contrast off-white |
-| `--muted` | Secondary | Dimmed; never compete with threat accents |
-| `--threat` / amber | Critical & High | Amber/warning must dominate hierarchy |
-| `--ok` / `--info` | Lower severities | Cooler, quieter than amber |
+| Token | Role |
+| --- | --- |
+| `--bg` / `--surface` | App base / panels |
+| `--text` / `--muted` | Hierarchy |
+| `--accent` | Brand + interactive focus |
+| `--threat` | Critical / High severity |
+| `--ok` / `--info` | Lower severities / status |
 
-Use CSS variables in `globals.css`. Prefer semantic names over raw hex in components.
+Themes: `data-theme="night" | "day"` on `<html>`. User can switch; preference stored in `localStorage`.
 
 ## Layout
 
-- **Ops rail (left):** Overview, Public Data, Ransomware, News, Telegram — brand mark at top.
-- **Main stage:** Tables and ranked lists first; detail drawer for ransomware/news.
-- **Public Data:** Actor search + dark basemap; no card soup.
+- **Top nav:** Overlord mark, primary tabs, live MYT/UTC clock, Night/Day toggle
+- **Main stage:** tables, maps, ranked lists — no card soup
+- **Footer:** product context, sources, ops notes
 
-## Threat hierarchy
+## Map
 
-Critical and High use the amber threat token and must visually outrank Medium / Low / Info. Do not use purple glow or rainbow severity chips.
+- Square pin + ring (MY accent pulse on Malaysia ISO)
+- Rich popup: actor, IP, country pill, host, lat/lon, centroid disclaimer
+- Cluster spiderfy; tiles follow theme (dark_all / voyager)
 
 ## Anti-slop (Impeccable)
 
-- No chip soup, nested cards, or multi-layer glassmorphism
-- No purple-on-black / indigo gradient “AI” look
-- No pulsing LIVE dots or italic-serif decorative headlines
-- No floating badge stickers over primary content
-- Motion only for hierarchy (rail focus, drawer enter) — not noise
+- No chip piles, nested cards, purple gradients, pulsing LIVE theater
+- Motion for hierarchy only (nav underline, drawer, MY pin ring)
+- One primary action per view; threat outranks chrome
 
 ## Typography
 
-Expressive but operational: a clear sans for UI chrome; mono for IPs, hashes, and timestamps. Avoid default Inter/Roboto stacks when shipping polished chrome (later tasks).
-
-## Scaffold note
-
-Full ops-rail UI lands in later tasks. This document locks visual intent for all subsequent UI work.
+- Display: Syne
+- Body: IBM Plex Sans
+- Mono: IBM Plex Mono (IPs, times, counts)

@@ -331,6 +331,7 @@ export default function PublicDataPage() {
             <ActorMap
               points={mapPoints}
               preferMalaysia={preferMalaysia}
+              actorName={selected?.username ?? null}
               className="absolute inset-0 h-full w-full"
             />
             {!selected && (

@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  actors,
   classifications,
   ingestRuns,
   newsItems,
@@ -27,11 +28,19 @@ export type IngestStatusRow = {
   error: string | null;
 };
 
+export type ThreatBucket = {
+  level: string;
+  count: number;
+};
+
 export type OverviewData = {
   myVictimCount: number;
+  newsCount: number;
+  actorCount: number;
   highThreatCount: number | null;
   unclassifiedEntityCount: number;
   classifiedEntityCount: number;
+  threatBuckets: ThreatBucket[];
   ingest: IngestStatusRow[];
   needsAttention: NeedsAttentionItem[];
 };
@@ -64,7 +73,17 @@ export async function getOverviewData(
     .from(ransomwareVictims)
     .where(eq(ransomwareVictims.country, "MY"));
 
+  const [newsCountRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(newsItems);
+
+  const [actorCountRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(actors);
+
   const myVictimCount = myVictimRow?.count ?? 0;
+  const newsCount = newsCountRow?.count ?? 0;
+  const actorCount = actorCountRow?.count ?? 0;
 
   const victims = await db
     .select({
@@ -249,11 +268,31 @@ export async function getOverviewData(
     };
   });
 
+  const threatTally = new Map<string, number>();
+  for (const item of needsAttention) {
+    const level = item.threatLevel ?? "Unclassified";
+    threatTally.set(level, (threatTally.get(level) ?? 0) + 1);
+  }
+  // Also count remaining unclassified in sample beyond attention list
+  threatTally.set(
+    "Unclassified",
+    Math.max(
+      threatTally.get("Unclassified") ?? 0,
+      unclassifiedEntityCount,
+    ),
+  );
+  const threatBuckets: ThreatBucket[] = [...threatTally.entries()].map(
+    ([level, count]) => ({ level, count }),
+  );
+
   return {
     myVictimCount,
+    newsCount,
+    actorCount,
     highThreatCount: highThreatOrNull,
     unclassifiedEntityCount,
     classifiedEntityCount,
+    threatBuckets,
     ingest,
     needsAttention,
   };

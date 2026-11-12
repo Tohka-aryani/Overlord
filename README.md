@@ -1,6 +1,6 @@
-# Dark Web Monitoring (RAVEN · MY)
+# Overlord — Dark Web Monitoring
 
-Malaysia-first dark-web / CTI monitoring dashboard. Next.js App Router + Postgres (Docker Compose) + Ollama classification on LAN.
+Malaysia-first dark-web / CTI monitoring console (**Overlord**). Next.js App Router + Postgres (Docker Compose) + Ollama classification on LAN.
 
 See [PRODUCT.md](./PRODUCT.md) and [DESIGN.md](./DESIGN.md) for intent and visual rules.
 

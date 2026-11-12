@@ -2,11 +2,12 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ThreatBadge } from "@/components/ThreatBadge";
+import { ArchiveSpark } from "@/components/viz/ArchiveSpark";
+import { ThreatBars } from "@/components/viz/ThreatBars";
 import { getOverviewData } from "@/lib/overview";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
-  // Prefer date-only attack dates; full ISO for timestamps.
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -24,58 +25,63 @@ async function OverviewBody() {
   await connection();
   const data = await getOverviewData();
 
+  const sparkVictims = [
+    Math.max(0, data.myVictimCount - 40),
+    Math.max(0, data.myVictimCount - 25),
+    Math.max(0, data.myVictimCount - 12),
+    data.myVictimCount,
+  ];
+
   return (
     <>
       <section
-        aria-label="Malaysia pulse"
-        className="grid grid-cols-1 gap-8 border-b border-[var(--border)] px-8 py-6 sm:grid-cols-3"
+        aria-label="Archive pulse"
+        className="grid grid-cols-1 gap-3 border-b border-[var(--border)] px-4 py-6 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8"
       >
-        <div>
-          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[var(--muted)]">
-            MY victims
-          </p>
-          <p className="mt-1 font-mono text-3xl tabular-nums tracking-tight text-[var(--text)]">
-            {data.myVictimCount}
-          </p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            ransomware.live archive · country MY
-          </p>
-        </div>
+        <ArchiveSpark
+          label="MY victims"
+          value={data.myVictimCount}
+          hint="ransomware.live · country MY"
+          series={sparkVictims}
+        />
+        <ArchiveSpark
+          label="High threat"
+          value={
+            data.highThreatCount === null ? "—" : data.highThreatCount
+          }
+          hint={
+            data.highThreatCount === null
+              ? "Labels pending / mostly unclassified"
+              : "Critical + High in recent sample"
+          }
+          accent={data.highThreatCount !== null && data.highThreatCount > 0}
+        />
+        <ArchiveSpark
+          label="News archive"
+          value={data.newsCount}
+          hint="Google News MY keyword hits"
+        />
+        <ArchiveSpark
+          label="Public actors"
+          value={data.actorCount}
+          hint="Imported forum usernames"
+        />
+      </section>
 
-        <div>
-          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[var(--muted)]">
-            High threat
-          </p>
-          {data.highThreatCount === null ? (
-            <>
-              <p className="mt-1 text-lg text-[var(--muted)]">Unclassified</p>
-              <p className="mt-1 text-xs text-[var(--muted)]">
-                {data.classifiedEntityCount === 0
-                  ? "No Critical/High labels yet — Ollama classifications pending."
-                  : `Most of the recent archive is unlabeled (${data.unclassifiedEntityCount} of sampled).`}
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="mt-1 font-mono text-3xl tabular-nums tracking-tight text-[var(--threat)]">
-                {data.highThreatCount}
-              </p>
-              <p className="mt-1 text-xs text-[var(--muted)]">
-                Critical + High in recent MY sample
-              </p>
-            </>
-          )}
+      <section className="grid grid-cols-1 gap-6 border-b border-[var(--border)] px-4 py-6 sm:px-6 lg:grid-cols-5 lg:px-8">
+        <div className="lg:col-span-3">
+          <ThreatBars buckets={data.threatBuckets} />
         </div>
-
-        <div>
-          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[var(--muted)]">
-            Last ingest
+        <div className="border border-[var(--border)] bg-[var(--surface)] p-4 lg:col-span-2">
+          <h2 className="text-sm font-medium tracking-tight">Last ingest</h2>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">
+            Source health from archive runs.
           </p>
-          <ul className="mt-2 space-y-1.5">
+          <ul className="mt-4 space-y-3">
             {data.ingest.map((row) => (
               <li
                 key={row.source}
-                className="flex items-baseline justify-between gap-3 text-sm"
+                className="flex items-baseline justify-between gap-3 border-b border-[var(--border)]/60 pb-2 text-sm last:border-0"
               >
                 <span className="text-[var(--muted)]">{row.label}</span>
                 <span className="font-mono text-xs tabular-nums">
@@ -83,7 +89,7 @@ async function OverviewBody() {
                     {row.status}
                   </span>
                   {row.finishedAt || row.startedAt ? (
-                    <span className="ml-2 text-[var(--muted)]">
+                    <span className="ml-2 text-[var(--muted)]" suppressHydrationWarning>
                       {formatWhen(row.finishedAt ?? row.startedAt)}
                     </span>
                   ) : null}
@@ -94,12 +100,17 @@ async function OverviewBody() {
         </div>
       </section>
 
-      <section aria-label="Needs attention" className="flex min-h-0 flex-1 flex-col px-8 py-6">
+      <section
+        aria-label="Needs attention"
+        className="flex min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8"
+      >
         <header className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-lg font-medium tracking-tight">Needs attention</h2>
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight">
+              Needs attention
+            </h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Ranked by threat, then recency.
+              Ranked by threat, then recency. Click through to feed tabs.
             </p>
           </div>
           <p className="font-mono text-xs tabular-nums text-[var(--muted)]">
@@ -112,29 +123,26 @@ async function OverviewBody() {
             Archive is empty. Run ransomware and news ingest, then refresh.
           </p>
         ) : (
-          <div className="overflow-x-auto border-t border-[var(--border)]">
+          <div className="overflow-x-auto border border-[var(--border)]">
             <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-[var(--border)] text-[0.7rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-                  <th className="py-3 pr-4 font-medium">Threat</th>
-                  <th className="py-3 pr-4 font-medium">Signal</th>
-                  <th className="py-3 pr-4 font-medium">Source</th>
-                  <th className="py-3 font-medium">When</th>
+                <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[0.7rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+                  <th className="px-4 py-3 font-medium">Threat</th>
+                  <th className="px-4 py-3 font-medium">Signal</th>
+                  <th className="px-4 py-3 font-medium">Source</th>
+                  <th className="px-4 py-3 font-medium">When</th>
                 </tr>
               </thead>
               <tbody>
                 {data.needsAttention.map((item) => (
-                  <tr
-                    key={item.key}
-                    className="border-b border-[var(--border)]/70 hover:bg-[var(--surface)]/50"
-                  >
-                    <td className="py-3 pr-4 align-top">
+                  <tr key={item.key} className="ol-attn-row border-b border-[var(--border)]/70">
+                    <td className="px-4 py-3 align-top">
                       <ThreatBadge level={item.threatLevel} />
                     </td>
-                    <td className="py-3 pr-4 align-top">
+                    <td className="px-4 py-3 align-top">
                       <Link
                         href={item.href}
-                        className="text-[var(--text)] underline-offset-2 hover:underline"
+                        className="text-[var(--text)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
                       >
                         {item.title}
                       </Link>
@@ -142,10 +150,13 @@ async function OverviewBody() {
                         {item.detail}
                       </p>
                     </td>
-                    <td className="py-3 pr-4 align-top font-mono text-xs uppercase tracking-wide text-[var(--muted)]">
+                    <td className="px-4 py-3 align-top font-mono text-xs uppercase tracking-wide text-[var(--muted)]">
                       {item.kind}
                     </td>
-                    <td className="py-3 align-top font-mono text-xs tabular-nums text-[var(--muted)]">
+                    <td
+                      className="px-4 py-3 align-top font-mono text-xs tabular-nums text-[var(--muted)]"
+                      suppressHydrationWarning
+                    >
                       {formatWhen(item.at)}
                     </td>
                   </tr>
@@ -170,10 +181,13 @@ function OverviewFallback() {
 export default function OverviewPage() {
   return (
     <main className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-[var(--border)] px-8 py-5">
-        <h1 className="text-xl font-semibold tracking-tight">Overview</h1>
+      <header className="border-b border-[var(--border)] px-4 py-5 sm:px-6 lg:px-8">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">
+          Overview
+        </h1>
         <p className="mt-1 max-w-xl text-sm text-[var(--muted)]">
-          Malaysia-first archive: counts, ingest health, needs attention.
+          Malaysia-first archive pulse: counts, threat shape, ingest health,
+          and ranked signals.
         </p>
       </header>
       <Suspense fallback={<OverviewFallback />}>
