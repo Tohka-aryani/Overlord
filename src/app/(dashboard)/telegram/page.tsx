@@ -1,28 +1,26 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { TelegramClient } from "@/components/telegram/TelegramClient";
+import { queryTelegram } from "@/lib/telegram-query";
+
+async function TelegramBody() {
+  await connection();
+  const initial = await queryTelegram({ channel: "breachdetect", limit: 300 });
+  return <TelegramClient initial={initial} />;
+}
+
 export default function TelegramPage() {
   return (
-    <main className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-[var(--border)] px-8 py-5">
-        <h1 className="text-xl font-semibold tracking-tight">Telegram</h1>
-        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
-          Channel monitoring for Malaysia CTI signals — not wired in v1.
-        </p>
-      </header>
-
-      <section
-        aria-label="Coming soon"
-        className="flex flex-1 flex-col items-start justify-center px-8 py-16"
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <Suspense
+        fallback={
+          <p className="px-4 py-8 text-sm text-[var(--muted)]">
+            Loading Telegram archive…
+          </p>
+        }
       >
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-          Deferred
-        </p>
-        <h2 className="mt-3 text-2xl font-medium tracking-tight text-[var(--text)]">
-          Coming soon
-        </h2>
-        <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--muted)]">
-          This tab is a placeholder. Live Telegram ingest and alerts are out of
-          scope for the local archive v1.
-        </p>
-      </section>
-    </main>
+        <TelegramBody />
+      </Suspense>
+    </div>
   );
 }

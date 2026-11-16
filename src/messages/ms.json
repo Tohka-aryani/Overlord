@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "overview": "Gambaran",
+    "publicData": "Data Awam",
+    "ransomware": "Ransomware",
+    "news": "Berita",
+    "telegram": "Telegram",
+    "settings": "Tetapan"
+  },
+  "settings": {
+    "title": "Tetapan",
+    "language": "Bahasa",
+    "theme": "Tema",
+    "en": "EN",
+    "ms": "MS"
+  },
+  "footer": {
+    "brand": "Overlord · Pantauan MY",
+    "disclaimer": "LAN / tempatan · bukan untuk pendedahan awam"
+  },
+  "overview": {
+    "eyebrow": "Permukaan perintah",
+    "title": "Gambaran",
+    "lede": "Nadi Malaysia dahulu merentas mangsa ransomware, berita, dan aktor awam.",
+    "mapTitle": "Kes mengikut negara",
+    "mapCountry": "Negara",
+    "mapPinpoint": "Titik",
+    "mapCountryHint": "Lapisan sahaja — keamatan isian mengikut bilangan kes",
+    "mapPinpointHint": "Pin sahaja — reka bentuk bertindan bila negara berhampiran; klik untuk fokus"
+  },
+  "telegram": {
+    "title": "Telegram",
+    "lede": "Arkib langsung @{channel} — disimpan dalam Postgres.",
+    "refresh": "Muat semula",
+    "empty": "Tiada mesej lagi. Picu ingest dengan POST /api/ingest/telegram.",
+    "archiveOnly": "Arkib sahaja — buka di Telegram untuk balas",
+    "open": "Buka",
+    "postsStored": "{n} siaran disimpan",
+    "lastIngest": "ingest terakhir {status}",
+    "noIngest": "belum ada ingest"
+  },
+  "common": {
+    "loading": "Memuatkan…",
+    "refresh": "Muat semula"
+  }
+}

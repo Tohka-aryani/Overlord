@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   actors,
@@ -7,7 +7,11 @@ import {
   newsItems,
   ransomwareVictims,
 } from "@/db/schema";
-import { threatSortRank } from "@/lib/threat-rank";
+import {
+  queryAttention,
+  queryHighThreatCount,
+  queryThreatBuckets,
+} from "@/lib/overview-attention";
 
 export type NeedsAttentionItem = {
   key: string;
@@ -17,6 +21,8 @@ export type NeedsAttentionItem = {
   threatLevel: string | null;
   at: string | null;
   href: string;
+  /** True when href opens the original article / clearnet source. */
+  external?: boolean;
 };
 
 export type IngestStatusRow = {
@@ -33,40 +39,53 @@ export type ThreatBucket = {
   count: number;
 };
 
+export type CountryCaseCount = {
+  country: string;
+  count: number;
+};
+
 export type OverviewData = {
   myVictimCount: number;
+  rwVictimTotal: number;
   newsCount: number;
   actorCount: number;
   highThreatCount: number | null;
   unclassifiedEntityCount: number;
   classifiedEntityCount: number;
+  archiveClassified: number;
+  archiveTotal: number;
   threatBuckets: ThreatBucket[];
+  byCountry: CountryCaseCount[];
   ingest: IngestStatusRow[];
-  needsAttention: NeedsAttentionItem[];
+  /** First page of full-archive Needs Attention (client re-fetches on filter). */
+  attention: {
+    items: NeedsAttentionItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  };
 };
 
 const INGEST_SOURCES: { source: string; label: string }[] = [
   { source: "ransomware.live", label: "Ransomware" },
+  { source: "ransomlook.io", label: "RansomLook" },
   { source: "google-news-rss", label: "News RSS" },
+  { source: "telegram:breachdetect", label: "Telegram" },
   { source: "public-data", label: "Public Data" },
+  { source: "classify-backfill", label: "Classify backfill" },
 ];
 
-type ClassRow = {
-  entityId: number;
-  threatLevel: string;
-  classifiedAt: Date;
+export type OverviewAttentionOpts = {
+  threat?: string;
+  sort?: "threat" | "signal" | "source" | "when";
+  dir?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
 };
 
-function latestByEntity(rows: ClassRow[]): Map<number, ClassRow> {
-  const map = new Map<number, ClassRow>();
-  for (const row of rows) {
-    if (!map.has(row.entityId)) map.set(row.entityId, row);
-  }
-  return map;
-}
-
+/** Pulse KPIs + full-archive threat buckets (Needs Attention via /api/overview/attention). */
 export async function getOverviewData(
-  attentionLimit = 30,
+  attentionOpts: OverviewAttentionOpts = {},
 ): Promise<OverviewData> {
   const [myVictimRow] = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -85,147 +104,65 @@ export async function getOverviewData(
   const newsCount = newsCountRow?.count ?? 0;
   const actorCount = actorCountRow?.count ?? 0;
 
-  const victims = await db
+  const [rwTotalRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(ransomwareVictims);
+
+  const rwVictimTotal = rwTotalRow?.count ?? 0;
+
+  const [rwClassifiedRow] = await db
     .select({
-      id: ransomwareVictims.id,
-      victim: ransomwareVictims.victim,
-      group: ransomwareVictims.group,
-      attackDate: ransomwareVictims.attackDate,
-      discoveredAt: ransomwareVictims.discoveredAt,
+      count: sql<number>`count(distinct ${classifications.entityId})::int`,
     })
-    .from(ransomwareVictims)
-    .where(eq(ransomwareVictims.country, "MY"))
-    .orderBy(
-      desc(ransomwareVictims.attackDate),
-      desc(ransomwareVictims.discoveredAt),
-    )
-    .limit(80);
+    .from(classifications)
+    .where(eq(classifications.entityType, "ransomware"));
 
-  const news = await db
+  const [newsClassifiedRow] = await db
     .select({
-      id: newsItems.id,
-      title: newsItems.title,
-      source: newsItems.source,
-      keywordHit: newsItems.keywordHit,
-      publishedAt: newsItems.publishedAt,
-      createdAt: newsItems.createdAt,
+      count: sql<number>`count(distinct ${classifications.entityId})::int`,
     })
-    .from(newsItems)
-    .orderBy(desc(newsItems.publishedAt), desc(newsItems.createdAt))
-    .limit(80);
+    .from(classifications)
+    .where(eq(classifications.entityType, "news"));
 
-  const victimIds = victims.map((v) => v.id);
-  const newsIds = news.map((n) => n.id);
+  const archiveTotal = rwVictimTotal + newsCount;
+  const archiveClassified =
+    (rwClassifiedRow?.count ?? 0) + (newsClassifiedRow?.count ?? 0);
+  const unclassifiedEntityCount = Math.max(0, archiveTotal - archiveClassified);
 
-  const ransomwareClasses =
-    victimIds.length === 0
-      ? []
-      : await db
-          .select({
-            entityId: classifications.entityId,
-            threatLevel: classifications.threatLevel,
-            classifiedAt: classifications.classifiedAt,
-          })
-          .from(classifications)
-          .where(
-            and(
-              eq(classifications.entityType, "ransomware"),
-              inArray(classifications.entityId, victimIds),
-            ),
-          )
-          .orderBy(desc(classifications.classifiedAt));
+  const [threatBuckets, highThreatCount, attention, countryRows] =
+    await Promise.all([
+      queryThreatBuckets(),
+      queryHighThreatCount(),
+      queryAttention({
+        threat: attentionOpts.threat ?? "All",
+        sort: attentionOpts.sort ?? "threat",
+        dir: attentionOpts.dir ?? "asc",
+        page: attentionOpts.page ?? 1,
+        pageSize: attentionOpts.pageSize ?? 50,
+      }),
+      db
+        .select({
+          country: ransomwareVictims.country,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(ransomwareVictims)
+        .groupBy(ransomwareVictims.country)
+        .orderBy(desc(sql`count(*)`)),
+    ]);
 
-  const newsClasses =
-    newsIds.length === 0
-      ? []
-      : await db
-          .select({
-            entityId: classifications.entityId,
-            threatLevel: classifications.threatLevel,
-            classifiedAt: classifications.classifiedAt,
-          })
-          .from(classifications)
-          .where(
-            and(
-              eq(classifications.entityType, "news"),
-              inArray(classifications.entityId, newsIds),
-            ),
-          )
-          .orderBy(desc(classifications.classifiedAt));
+  const byCountry: CountryCaseCount[] = countryRows
+    .map((r) => ({
+      country: (r.country ?? "").trim().toUpperCase() || "??",
+      count: Number(r.count) || 0,
+    }))
+    .filter((r) => r.count > 0);
 
-  const rwMap = latestByEntity(ransomwareClasses);
-  const newsMap = latestByEntity(newsClasses);
-
-  let classifiedEntityCount = 0;
-  let highThreatCount = 0;
-
-  for (const v of victims) {
-    const c = rwMap.get(v.id);
-    if (c) {
-      classifiedEntityCount += 1;
-      if (c.threatLevel === "Critical" || c.threatLevel === "High") {
-        highThreatCount += 1;
-      }
-    }
-  }
-  for (const n of news) {
-    const c = newsMap.get(n.id);
-    if (c) {
-      classifiedEntityCount += 1;
-      if (c.threatLevel === "Critical" || c.threatLevel === "High") {
-        highThreatCount += 1;
-      }
-    }
-  }
-
-  const sampledEntityCount = victims.length + news.length;
-  const unclassifiedEntityCount = Math.max(
-    0,
-    sampledEntityCount - classifiedEntityCount,
-  );
-
-  // Honest pulse: if nothing is Critical/High yet and archive is largely unlabeled, surface note.
   const highThreatOrNull =
     highThreatCount > 0
       ? highThreatCount
-      : classifiedEntityCount === 0 || unclassifiedEntityCount > classifiedEntityCount
+      : archiveClassified === 0 || unclassifiedEntityCount > archiveClassified
         ? null
         : 0;
-
-  const needsAttention: NeedsAttentionItem[] = [
-    ...victims.map((v) => {
-      const c = rwMap.get(v.id);
-      return {
-        key: `ransomware:${v.id}`,
-        kind: "ransomware" as const,
-        title: v.victim,
-        detail: v.group,
-        threatLevel: c?.threatLevel ?? null,
-        at: v.attackDate ?? v.discoveredAt?.toISOString() ?? null,
-        href: "/ransomware",
-      };
-    }),
-    ...news.map((n) => {
-      const c = newsMap.get(n.id);
-      return {
-        key: `news:${n.id}`,
-        kind: "news" as const,
-        title: n.title,
-        detail: n.keywordHit ?? n.source ?? "News",
-        threatLevel: c?.threatLevel ?? null,
-        at: n.publishedAt?.toISOString() ?? n.createdAt.toISOString(),
-        href: "/news",
-      };
-    }),
-  ]
-    .sort((a, b) => {
-      const rank = threatSortRank(a.threatLevel) - threatSortRank(b.threatLevel);
-      if (rank !== 0) return rank;
-      const aAt = a.at ?? "";
-      const bAt = b.at ?? "";
-      return bAt.localeCompare(aAt);
-    })
-    .slice(0, attentionLimit);
 
   const recentRuns = await db
     .select({
@@ -268,32 +205,19 @@ export async function getOverviewData(
     };
   });
 
-  const threatTally = new Map<string, number>();
-  for (const item of needsAttention) {
-    const level = item.threatLevel ?? "Unclassified";
-    threatTally.set(level, (threatTally.get(level) ?? 0) + 1);
-  }
-  // Also count remaining unclassified in sample beyond attention list
-  threatTally.set(
-    "Unclassified",
-    Math.max(
-      threatTally.get("Unclassified") ?? 0,
-      unclassifiedEntityCount,
-    ),
-  );
-  const threatBuckets: ThreatBucket[] = [...threatTally.entries()].map(
-    ([level, count]) => ({ level, count }),
-  );
-
   return {
     myVictimCount,
+    rwVictimTotal,
     newsCount,
     actorCount,
     highThreatCount: highThreatOrNull,
     unclassifiedEntityCount,
-    classifiedEntityCount,
+    classifiedEntityCount: archiveClassified,
+    archiveClassified,
+    archiveTotal,
     threatBuckets,
+    byCountry,
     ingest,
-    needsAttention,
+    attention,
   };
 }

@@ -1,529 +1,246 @@
-"use client";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { and, asc, count, countDistinct, desc, eq, sql } from "drizzle-orm";
+import { PublicDataClient } from "@/components/public-data/PublicDataClient";
+import type {
+  ActorSummary,
+  IpDetailResponse,
+  IpItem,
+} from "@/components/public-data/types";
+import { db } from "@/db";
+import { actorIps, actors } from "@/db/schema";
+import { jitterCountryCentroidStable } from "@/lib/geo/country-centroids";
 
-import dynamic from "next/dynamic";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import type { ActorMapPoint } from "@/components/map/ActorMap";
-import {
-  filterByCountry,
-  mapPreferMalaysia,
-  preferredCountryFilter,
-  uniqueCountries,
-} from "@/lib/public-data-ui";
-import { formatWhen } from "@/lib/format-when";
+const PAGE_SIZE = 100;
 
-const ActorMap = dynamic(() => import("@/components/map/ActorMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full min-h-[16rem] items-center justify-center bg-[var(--surface)] text-sm text-[var(--muted)]">
-      Loading map…
-    </div>
-  ),
-});
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-type ActorSummary = {
-  id: number;
-  username: string;
-  forums: string[];
-  firstSeenAt: string | null;
-  lastSeenAt: string | null;
-  ipCount: number;
-};
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
 
-type IpItem = {
-  id: number;
-  actorId: number;
-  username: string;
-  ip: string;
-  hostname: string | null;
-  countryIso: string | null;
-  source: string | null;
-  createdAt: string;
-  map: {
-    iso: string;
-    lat: number;
-    lon: number;
-    centroidLat: number;
-    centroidLon: number;
-  } | null;
-};
+async function loadInitial(sp: Record<string, string | string[] | undefined>) {
+  await connection();
 
-type IpsResponse = {
-  actor: { id: number; username: string; forums: string[] };
-  country: string | null;
-  count: number;
-  items: IpItem[];
-};
+  const actorParam = (first(sp.actor) ?? "").trim();
+  const detailIp = (first(sp.detailIp) ?? "").trim();
+  const limitRaw = Number.parseInt(first(sp.limit) ?? String(PAGE_SIZE), 10);
+  const limit = Math.min(
+    Math.max(Number.isFinite(limitRaw) ? limitRaw : PAGE_SIZE, PAGE_SIZE),
+    2000,
+  );
 
-const inputClass =
-  "w-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--muted)]";
+  const [totalRow] = await db.select({ count: count() }).from(actors);
+  const total = Number(totalRow?.count ?? 0);
 
-const selectClass =
-  "border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 font-mono text-xs uppercase tracking-wider text-[var(--text)] outline-none focus:border-[var(--muted)]";
+  const rows = await db
+    .select({
+      id: actors.id,
+      username: actors.username,
+      forums: actors.forums,
+      firstSeenAt: actors.firstSeenAt,
+      lastSeenAt: actors.lastSeenAt,
+      ipCount: countDistinct(actorIps.ip),
+    })
+    .from(actors)
+    .leftJoin(actorIps, eq(actorIps.actorId, actors.id))
+    .groupBy(
+      actors.id,
+      actors.username,
+      actors.forums,
+      actors.firstSeenAt,
+      actors.lastSeenAt,
+    )
+    .orderBy(desc(sql`count(distinct ${actorIps.ip})`), asc(actors.username))
+    .limit(limit);
 
-export default function PublicDataPage() {
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<ActorSummary[]>([]);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [browseActors, setBrowseActors] = useState<ActorSummary[]>([]);
-  const [selected, setSelected] = useState<ActorSummary | null>(null);
-  const [ips, setIps] = useState<IpItem[]>([]);
-  const [ipsLoading, setIpsLoading] = useState(false);
-  const [ipsError, setIpsError] = useState<string | null>(null);
-  const [country, setCountry] = useState<"ALL" | string>("ALL");
-  const searchWrapRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const loadIpsAbortRef = useRef<AbortController | null>(null);
-  const loadIpsSeqRef = useRef(0);
-
-  // Browse list for empty state / quick pick
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/public-data/actors?limit=40", {
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as { items: ActorSummary[] };
-        if (!cancelled) setBrowseActors(data.items);
-      } catch {
-        /* browse is optional */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Autocomplete
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const q = query.trim();
-    if (q.length < 1) {
-      setSuggestions([]);
-      setSearchLoading(false);
-      return;
+  const forumRows = await db
+    .select({ forums: actors.forums })
+    .from(actors)
+    .limit(5000);
+  const forumSet = new Set<string>();
+  for (const row of forumRows) {
+    for (const f of row.forums ?? []) {
+      const v = f.trim().toLowerCase();
+      if (v) forumSet.add(v);
     }
-    setSearchLoading(true);
-    debounceRef.current = setTimeout(() => {
-      void (async () => {
-        try {
-          const res = await fetch(
-            `/api/public-data/search?q=${encodeURIComponent(q)}&limit=15`,
-            { cache: "no-store" },
-          );
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = (await res.json()) as { items: ActorSummary[] };
-          setSuggestions(data.items);
-          setSearchOpen(true);
-        } catch {
-          setSuggestions([]);
-        } finally {
-          setSearchLoading(false);
-        }
-      })();
-    }, 220);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [query]);
+  }
 
-  // Close suggestions on outside click
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (!searchWrapRef.current?.contains(e.target as Node)) {
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
+  const initialActors: ActorSummary[] = rows.map((r) => ({
+    id: r.id,
+    username: r.username,
+    forums: r.forums ?? [],
+    firstSeenAt: r.firstSeenAt?.toISOString() ?? null,
+    lastSeenAt: r.lastSeenAt?.toISOString() ?? null,
+    ipCount: Number(r.ipCount ?? 0),
+  }));
 
-  const loadIps = useCallback(async (actor: ActorSummary) => {
-    loadIpsAbortRef.current?.abort();
-    const controller = new AbortController();
-    loadIpsAbortRef.current = controller;
-    const requestId = actor.id;
-    const seq = ++loadIpsSeqRef.current;
+  let seed =
+    (actorParam
+      ? initialActors.find(
+          (a) => a.username.toLowerCase() === actorParam.toLowerCase(),
+        )
+      : null) ?? null;
 
-    setIpsLoading(true);
-    setIpsError(null);
-    try {
-      const res = await fetch(
-        `/api/public-data/ips?actorId=${actor.id}&map=1`,
-        { cache: "no-store", signal: controller.signal },
+  if (!seed && actorParam) {
+    const [named] = await db
+      .select({
+        id: actors.id,
+        username: actors.username,
+        forums: actors.forums,
+        firstSeenAt: actors.firstSeenAt,
+        lastSeenAt: actors.lastSeenAt,
+        ipCount: countDistinct(actorIps.ip),
+      })
+      .from(actors)
+      .leftJoin(actorIps, eq(actorIps.actorId, actors.id))
+      .where(sql`lower(${actors.username}) = ${actorParam.toLowerCase()}`)
+      .groupBy(
+        actors.id,
+        actors.username,
+        actors.forums,
+        actors.firstSeenAt,
+        actors.lastSeenAt,
+      )
+      .limit(1);
+    if (named) {
+      seed = {
+        id: named.id,
+        username: named.username,
+        forums: named.forums ?? [],
+        firstSeenAt: named.firstSeenAt?.toISOString() ?? null,
+        lastSeenAt: named.lastSeenAt?.toISOString() ?? null,
+        ipCount: Number(named.ipCount ?? 0),
+      };
+    }
+  }
+
+  if (!seed) {
+    seed = initialActors.find((a) => a.ipCount > 0) ?? null;
+  }
+
+  let initialIps: IpItem[] = [];
+
+  if (seed) {
+    const ipRows = await db
+      .select({
+        id: actorIps.id,
+        actorId: actorIps.actorId,
+        username: actorIps.username,
+        ip: actorIps.ip,
+        hostname: actorIps.hostname,
+        countryIso: actorIps.countryIso,
+        source: actorIps.source,
+        createdAt: actorIps.createdAt,
+      })
+      .from(actorIps)
+      .where(and(eq(actorIps.actorId, seed.id)))
+      .orderBy(
+        sql`case when ${actorIps.countryIso} = 'MY' then 0 else 1 end`,
+        asc(actorIps.countryIso),
+        asc(actorIps.ip),
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as IpsResponse;
-      if (
-        controller.signal.aborted ||
-        seq !== loadIpsSeqRef.current ||
-        data.actor.id !== requestId
-      ) {
-        return;
-      }
-      setIps(data.items);
-      setSelected({
-        id: data.actor.id,
-        username: data.actor.username,
-        forums: data.actor.forums,
-        firstSeenAt: actor.firstSeenAt,
-        lastSeenAt: actor.lastSeenAt,
-        ipCount: data.count,
-      });
-      setCountry(preferredCountryFilter(data.items));
-    } catch (e) {
-      if (controller.signal.aborted) return;
-      if (seq !== loadIpsSeqRef.current) return;
-      setIps([]);
-      setIpsError(e instanceof Error ? e.message : "Failed to load IPs");
-    } finally {
-      if (seq === loadIpsSeqRef.current) {
-        setIpsLoading(false);
-      }
-    }
-  }, []);
 
-  const selectActor = useCallback(
-    (actor: ActorSummary) => {
-      setQuery(actor.username);
-      setSearchOpen(false);
-      void loadIps(actor);
-    },
-    [loadIps],
-  );
-
-  const countries = useMemo(() => uniqueCountries(ips), [ips]);
-
-  const filteredIps = useMemo(
-    () => filterByCountry(ips, country),
-    [ips, country],
-  );
-
-  const mapPoints: ActorMapPoint[] = useMemo(() => {
-    return filteredIps
-      .filter((r) => r.map != null)
-      .map((r) => ({
+    initialIps = ipRows.map((r) => {
+      const mapPoint = r.countryIso
+        ? jitterCountryCentroidStable(r.countryIso, r.ip)
+        : null;
+      return {
         id: r.id,
+        actorId: r.actorId,
+        username: r.username,
         ip: r.ip,
         hostname: r.hostname,
         countryIso: r.countryIso,
-        lat: r.map!.lat,
-        lon: r.map!.lon,
-      }));
-  }, [filteredIps]);
+        source: r.source,
+        createdAt:
+          r.createdAt instanceof Date
+            ? r.createdAt.toISOString()
+            : String(r.createdAt),
+        map: mapPoint
+          ? {
+              iso: mapPoint.iso,
+              lat: mapPoint.jitterLat,
+              lon: mapPoint.jitterLon,
+              centroidLat: mapPoint.lat,
+              centroidLon: mapPoint.lon,
+            }
+          : null,
+      };
+    });
+  }
 
-  const preferMalaysia = mapPreferMalaysia(country, ips, mapPoints.length);
+  let initialDetail: IpDetailResponse | null = null;
+  if (detailIp && /^[\d.a-fA-F:]+$/.test(detailIp)) {
+    const dbUsers = await db
+      .select({
+        username: actorIps.username,
+        hostname: actorIps.hostname,
+        countryIso: actorIps.countryIso,
+        actorId: actorIps.actorId,
+      })
+      .from(actorIps)
+      .where(eq(actorIps.ip, detailIp));
 
-  const clearSelection = () => {
-    loadIpsAbortRef.current?.abort();
-    loadIpsSeqRef.current += 1;
-    setSelected(null);
-    setIps([]);
-    setIpsError(null);
-    setCountry("ALL");
-    setQuery("");
+    const token = process.env.IPINFO_TOKEN?.trim();
+    let ipinfo: Record<string, unknown> | null = null;
+    let ipinfoError: string | null = null;
+    if (token) {
+      try {
+        const res = await fetch(
+          `https://ipinfo.io/${encodeURIComponent(detailIp)}?token=${encodeURIComponent(token)}`,
+          { signal: AbortSignal.timeout(8_000) },
+        );
+        if (!res.ok) ipinfoError = `ipinfo HTTP ${res.status}`;
+        else ipinfo = (await res.json()) as Record<string, unknown>;
+      } catch (err) {
+        ipinfoError = err instanceof Error ? err.message : String(err);
+      }
+    } else {
+      ipinfoError = "IPINFO_TOKEN not configured";
+    }
+
+    initialDetail = { ip: detailIp, dbUsers, ipinfo, ipinfoError };
+  }
+
+  return {
+    initialActors,
+    initialTotal: total,
+    initialHasMore: initialActors.length < total,
+    initialForums: [...forumSet].sort(),
+    initialSelected: seed,
+    initialIps,
+    initialDetail,
+    pageLimit: limit,
   };
-
-  return (
-    <main className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-[var(--border)] px-8 py-5">
-        <h1 className="text-xl font-semibold tracking-tight">Public Data</h1>
-        <p className="mt-1 max-w-xl text-sm text-[var(--muted)]">
-          Actor search and dark basemap — Malaysia-first when ISO data exists.
-        </p>
-      </header>
-
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Stage: search, map, IP list */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex flex-wrap items-end gap-6 border-b border-[var(--border)] px-8 py-4">
-            <div ref={searchWrapRef} className="relative min-w-[14rem] flex-1 max-w-md">
-              <label className="block">
-                <span className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Actor
-                </span>
-                <input
-                  type="search"
-                  role="combobox"
-                  aria-expanded={searchOpen && suggestions.length > 0}
-                  aria-controls="actor-search-list"
-                  aria-autocomplete="list"
-                  className={`mt-1.5 ${inputClass}`}
-                  placeholder="Search username…"
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setSearchOpen(true);
-                  }}
-                  onFocus={() => {
-                    if (suggestions.length > 0) setSearchOpen(true);
-                  }}
-                  autoComplete="off"
-                />
-              </label>
-              {searchOpen && (suggestions.length > 0 || searchLoading) && (
-                <ul
-                  id="actor-search-list"
-                  role="listbox"
-                  className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto border border-[var(--border)] bg-[var(--surface)]"
-                >
-                  {searchLoading && suggestions.length === 0 && (
-                    <li className="px-3 py-2 text-sm text-[var(--muted)]">
-                      Searching…
-                    </li>
-                  )}
-                  {suggestions.map((a) => (
-                    <li key={a.id} role="option" aria-selected={selected?.id === a.id}>
-                      <button
-                        type="button"
-                        className="flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-[var(--surface-raised)]"
-                        onClick={() => selectActor(a)}
-                      >
-                        <span className="font-medium text-[var(--text)]">
-                          {a.username}
-                        </span>
-                        <span className="shrink-0 font-mono text-xs tabular-nums text-[var(--muted)]">
-                          {a.ipCount} IP
-                          {a.ipCount === 1 ? "" : "s"}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <label className="block">
-              <span className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-                Country
-              </span>
-              <select
-                className={`mt-1.5 block ${selectClass}`}
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                aria-label="Country filter"
-                disabled={!selected && countries.length === 0}
-              >
-                <option value="ALL">All</option>
-                {(countries.includes("MY") || country === "MY") && (
-                  <option value="MY">MY</option>
-                )}
-                {countries
-                  .filter((c) => c !== "MY")
-                  .map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="relative min-h-[18rem] flex-1 border-b border-[var(--border)] lg:min-h-0">
-            <ActorMap
-              points={mapPoints}
-              preferMalaysia={preferMalaysia}
-              actorName={selected?.username ?? null}
-              className="absolute inset-0 h-full w-full"
-            />
-            {!selected && (
-              <p className="pointer-events-none absolute inset-x-0 top-4 z-[400] px-8 text-sm text-[var(--muted)]">
-                Select an actor to plot IPs
-              </p>
-            )}
-            {selected && ipsLoading && (
-              <p className="pointer-events-none absolute inset-x-0 top-4 z-[400] px-8 text-sm text-[var(--muted)]">
-                Loading IPs…
-              </p>
-            )}
-          </div>
-
-          <div className="max-h-56 overflow-y-auto px-8 py-3 lg:max-h-64">
-            {ipsError && (
-              <p className="text-sm text-[var(--threat)]">{ipsError}</p>
-            )}
-            {!selected && !ipsError && (
-              <p className="text-sm text-[var(--muted)]">
-                IP list appears after an actor is selected.
-              </p>
-            )}
-            {selected && !ipsLoading && filteredIps.length === 0 && !ipsError && (
-              <p className="text-sm text-[var(--muted)]">
-                No IPs for this country filter.
-              </p>
-            )}
-            {filteredIps.length > 0 && (
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-                    <th className="pb-2 font-normal">IP</th>
-                    <th className="pb-2 font-normal">Country</th>
-                    <th className="hidden pb-2 font-normal sm:table-cell">
-                      Hostname
-                    </th>
-                    <th className="hidden pb-2 font-normal md:table-cell">
-                      Source
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredIps.map((row) => {
-                    const my = (row.countryIso ?? "").toUpperCase() === "MY";
-                    return (
-                      <tr
-                        key={row.id}
-                        className="border-t border-[var(--border)]/60"
-                      >
-                        <td className="py-1.5 font-mono text-xs tabular-nums text-[var(--text)]">
-                          {row.ip}
-                        </td>
-                        <td
-                          className={`py-1.5 font-mono text-xs ${
-                            my
-                              ? "text-[var(--threat)]"
-                              : "text-[var(--muted)]"
-                          }`}
-                        >
-                          {row.countryIso ?? "—"}
-                        </td>
-                        <td className="hidden max-w-[12rem] truncate py-1.5 text-[var(--muted)] sm:table-cell">
-                          {row.hostname ?? "—"}
-                        </td>
-                        <td className="hidden py-1.5 font-mono text-xs text-[var(--muted)] md:table-cell">
-                          {row.source ?? "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* Side panel: actor detail / browse */}
-        <aside className="flex w-full shrink-0 flex-col border-t border-[var(--border)] bg-[var(--surface)] lg:w-80 lg:border-l lg:border-t-0">
-          {selected ? (
-            <div className="flex min-h-0 flex-1 flex-col">
-              <header className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
-                <div>
-                  <p className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-                    Actor
-                  </p>
-                  <h2 className="mt-1 text-base font-medium tracking-tight text-[var(--text)]">
-                    {selected.username}
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={clearSelection}
-                  className="shrink-0 font-mono text-xs uppercase tracking-wider text-[var(--muted)] hover:text-[var(--text)]"
-                >
-                  Clear
-                </button>
-              </header>
-              <dl className="flex-1 overflow-y-auto px-5 py-2">
-                <DetailRow label="IP count">
-                  <span className="font-mono text-xs tabular-nums">
-                    {selected.ipCount}
-                    {country !== "ALL" &&
-                      ` · ${filteredIps.length} shown (${country})`}
-                  </span>
-                </DetailRow>
-                <DetailRow label="Forums">
-                  {selected.forums?.length ? (
-                    <ul className="space-y-1">
-                      {selected.forums.map((f) => (
-                        <li key={f} className="font-mono text-xs text-[var(--text)]">
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "—"
-                  )}
-                </DetailRow>
-                <DetailRow label="First seen" mono>
-                  {formatWhen(selected.firstSeenAt)}
-                </DetailRow>
-                <DetailRow label="Last seen" mono>
-                  {formatWhen(selected.lastSeenAt)}
-                </DetailRow>
-                <DetailRow label="Mapped points" mono>
-                  {String(mapPoints.length)}
-                </DetailRow>
-              </dl>
-            </div>
-          ) : (
-            <div className="flex min-h-0 flex-1 flex-col">
-              <header className="border-b border-[var(--border)] px-5 py-4">
-                <p className="text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Actors
-                </p>
-                <h2 className="mt-1 text-base font-medium tracking-tight">
-                  Top by IP count
-                </h2>
-              </header>
-              <ul className="min-h-0 flex-1 overflow-y-auto">
-                {browseActors.length === 0 && (
-                  <li className="px-5 py-4 text-sm text-[var(--muted)]">
-                    No actors in archive yet. Run public-data import.
-                  </li>
-                )}
-                {browseActors.map((a) => (
-                  <li key={a.id} className="border-b border-[var(--border)]/50">
-                    <button
-                      type="button"
-                      className="flex w-full items-baseline justify-between gap-3 px-5 py-3 text-left hover:bg-[var(--surface-raised)]"
-                      onClick={() => selectActor(a)}
-                    >
-                      <span className="truncate text-sm text-[var(--text)]">
-                        {a.username}
-                      </span>
-                      <span className="shrink-0 font-mono text-xs tabular-nums text-[var(--muted)]">
-                        {a.ipCount}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </aside>
-      </div>
-    </main>
-  );
 }
 
-function DetailRow({
-  label,
-  children,
-  mono,
+async function PublicDataBody({
+  searchParams,
 }: {
-  label: string;
-  children: React.ReactNode;
-  mono?: boolean;
+  searchParams: SearchParams;
+}) {
+  const sp = await searchParams;
+  const data = await loadInitial(sp);
+  return <PublicDataClient {...data} />;
+}
+
+export default function PublicDataPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
 }) {
   return (
-    <>
-      <dt className="border-b border-transparent pt-3 text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-        {label}
-      </dt>
-      <dd
-        className={`mt-1 border-b border-[var(--border)]/70 pb-3 break-words text-sm text-[var(--text)] ${
-          mono ? "font-mono text-xs tabular-nums" : ""
-        }`}
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <Suspense
+        fallback={
+          <p className="px-4 py-8 text-sm text-[var(--muted)]">
+            Loading public data archive…
+          </p>
+        }
       >
-        {children}
-      </dd>
-    </>
+        <PublicDataBody searchParams={searchParams} />
+      </Suspense>
+    </div>
   );
 }

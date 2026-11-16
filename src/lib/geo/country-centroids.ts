@@ -160,7 +160,28 @@ export type MapPoint = {
   jitterLon: number;
 };
 
-/** Jitter around country centroid so co-located pins do not stack (Task 9). */
+/** Deterministic 0..1 from a string (stable pin jitter per IP). */
+export function hashUnit(seed: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967296;
+}
+
+/** Mulberry32 PRNG from a unit seed. */
+export function seededRandom(seed: string): () => number {
+  let t = (hashUnit(seed) * 0xffffffff) >>> 0;
+  return () => {
+    t += 0x6d2b79f5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Jitter around country centroid so co-located pins do not stack. */
 export function jitterCountryCentroid(
   iso: string,
   spread = 2.5,
@@ -177,4 +198,13 @@ export function jitterCountryCentroid(
     jitterLat: Math.round((lat + (random() * 2 - 1) * spread) * 10000) / 10000,
     jitterLon: Math.round((lon + (random() * 2 - 1) * spread) * 10000) / 10000,
   };
+}
+
+/** Stable jitter keyed by IP so pins do not teleport on reload. */
+export function jitterCountryCentroidStable(
+  iso: string,
+  seed: string,
+  spread = 2.5,
+): MapPoint | null {
+  return jitterCountryCentroid(iso, spread, seededRandom(seed));
 }

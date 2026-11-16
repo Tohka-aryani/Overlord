@@ -1,18 +1,21 @@
-import { asc, countDistinct, desc, eq, sql } from "drizzle-orm";
+import { asc, count, countDistinct, desc, eq, sql } from "drizzle-orm";
 import { connection, NextResponse } from "next/server";
 import { db } from "@/db";
 import { actorIps, actors } from "@/db/schema";
 
 /**
- * List archived actors (with IP counts).
- * GET /api/public-data/actors?limit=50&offset=0&forum=darkforums
+ * List archived actors (with IP counts) — paginated full archive.
+ * GET /api/public-data/actors?limit=100&offset=0&forum=darkforums
  */
 export async function GET(request: Request) {
   await connection();
 
   const url = new URL(request.url);
   const limit = Math.min(
-    Math.max(Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 1),
+    Math.max(
+      Number.parseInt(url.searchParams.get("limit") ?? "100", 10) || 100,
+      1,
+    ),
     500,
   );
   const offset = Math.max(
@@ -24,6 +27,11 @@ export async function GET(request: Request) {
   const whereForum = forum
     ? sql`${forum} = ANY(${actors.forums})`
     : undefined;
+
+  const [totalRow] = await db
+    .select({ count: count() })
+    .from(actors)
+    .where(whereForum);
 
   const rows = await db
     .select({
@@ -50,11 +58,15 @@ export async function GET(request: Request) {
     .limit(limit)
     .offset(offset);
 
+  const total = Number(totalRow?.count ?? 0);
+
   return NextResponse.json({
     forum: forum || null,
     limit,
     offset,
     count: rows.length,
+    total,
+    hasMore: offset + rows.length < total,
     items: rows.map((r) => ({
       id: r.id,
       username: r.username,

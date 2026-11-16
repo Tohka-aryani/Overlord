@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="obsidian">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Overlord · Phase 0 mood board (rev)</title>
+  <style>
+    @font-face {
+      font-family: "Aces07";
+      src: url("./fonts/ACES07_Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root, html[data-theme="obsidian"] {
+      --bg: #0c0e0d; --surface: #151916; --raised: #1c221e;
+      --border: #2c342e; --border-strong: #3f4a42;
+      --text: #e8ece8; --muted: #8b968d;
+      --accent: #e07a3a; --accent-contrast: #140e0a;
+      --threat: #e8a03a; --ok: #5d9a72; --info: #6a8a9a;
+      --bubble: #1a211c; --pin: #e07a3a; --country: #e8a03a;
+      --inset: inset 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    html[data-theme="mangrove"] {
+      --bg: #0a1210; --surface: #12201b; --raised: #1a2c25;
+      --border: #2a4036; --border-strong: #3d5a4a;
+      --text: #e4efe8; --muted: #7f9a8a;
+      --accent: #c47a4a; --accent-contrast: #140c08;
+      --threat: #d4a04a; --ok: #4e9a6a; --info: #5a8a8a;
+      --bubble: #162820; --pin: #c47a4a; --country: #4e9a6a;
+      --inset: inset 0 0 0 1px rgba(255,255,255,0.07);
+    }
+    html[data-theme="graphite"] {
+      --bg: #e8ebee; --surface: #f4f6f8; --raised: #ffffff;
+      --border: #c8ced6; --border-strong: #9aa3ae;
+      --text: #1a1f24; --muted: #5c6670;
+      --accent: #b85a28; --accent-contrast: #fff8f0;
+      --threat: #b4531a; --ok: #2f6b45; --info: #3d6578;
+      --bubble: #ffffff; --pin: #b85a28; --country: #3d6578;
+      --inset: inset 0 0 0 1px rgba(0,0,0,0.08);
+    }
+    html[data-theme="phosphor"] {
+      --bg: #050805; --surface: #0b120c; --raised: #121a13;
+      --border: #1e2e20; --border-strong: #2f4632;
+      --text: #d4f5d8; --muted: #6a9070;
+      --accent: #3ddc84; --accent-contrast: #041008;
+      --threat: #c8e86a; --ok: #3ddc84; --info: #6ab0a0;
+      --bubble: #0e1810; --pin: #3ddc84; --country: #c8e86a;
+      --inset: inset 0 0 0 1px rgba(61,220,132,0.12);
+    }
+    html[data-theme="cobalt"] {
+      --bg: #070b12; --surface: #0e1520; --raised: #152033;
+      --border: #243044; --border-strong: #3a5070;
+      --text: #e6eef8; --muted: #7a8fa8;
+      --accent: #3b82f6; --accent-contrast: #041018;
+      --threat: #60a5fa; --ok: #34d399; --info: #38bdf8;
+      --bubble: #121c2c; --pin: #3b82f6; --country: #60a5fa;
+      --inset: inset 0 0 0 1px rgba(96,165,250,0.14);
+    }
+    html[data-theme="violet"] {
+      --bg: #0c0912; --surface: #16101f; --raised: #1f162c;
+      --border: #322448; --border-strong: #4a3568;
+      --text: #f0e8fa; --muted: #9580b0;
+      --accent: #a78bfa; --accent-contrast: #12081c;
+      --threat: #c4b5fd; --ok: #6ee7b7; --info: #93c5fd;
+      --bubble: #1a1228; --pin: #a78bfa; --country: #c4b5fd;
+      --inset: inset 0 0 0 1px rgba(167,139,250,0.16);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Aces07", ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.03em;
+      background:
+        radial-gradient(900px 480px at 8% -8%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    button, input, code, pre, .meta, .chip, .badge, .nav-links, .kpi .k, .footer-mock, .map-legend, .fake-input {
+      font-family: "Aces07", ui-sans-serif, system-ui, sans-serif;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 72px; }
+    h1 {
+      font-family: "Aces07", sans-serif;
+      font-weight: 400;
+      font-size: clamp(1.6rem, 4vw, 2.35rem);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 0 0 0.35rem;
+      line-height: 1.1;
+    }
+    .eyebrow {
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .lede { color: var(--muted); max-width: 44rem; margin: 0 0 1.5rem; font-size: 0.95rem; }
+    .panel {
+      background: var(--surface);
+      box-shadow: var(--inset);
+      border: 1px solid var(--border);
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .panel h2 {
+      font-size: 0.95rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 0.75rem;
+    }
+    .meta {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .themes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    @media (max-width: 720px) { .themes { grid-template-columns: 1fr 1fr; } }
+    .theme-btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--raised);
+      color: var(--text);
+      padding: 0.65rem 0.7rem;
+      text-align: left;
+      font: inherit;
+      box-shadow: var(--inset);
+    }
+    .theme-btn[aria-pressed="true"] {
+      border-color: var(--accent);
+      outline: 1px solid color-mix(in oklab, var(--accent) 50%, transparent);
+    }
+    .theme-btn strong {
+      display: block;
+      font-family: "Aces07", sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+    .swatch-row { display: flex; gap: 3px; height: 14px; margin-bottom: 0.35rem; }
+    .swatch-row span { flex: 1; }
+    .type-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 720px) { .type-row { grid-template-columns: 1fr; } }
+    .type-card {
+      background: var(--raised);
+      border: 1px solid var(--border);
+      padding: 0.85rem;
+      box-shadow: var(--inset);
+    }
+    .type-card .label { font-family: "Aces07", sans-serif; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.4rem; }
+    .t-display { font-family: "Aces07", sans-serif; font-size: 1.45rem; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.15; }
+    .t-body { font-family: "Aces07", sans-serif; font-size: 0.95rem; }
+    .t-mono { font-family: "Aces07", sans-serif; font-size: 0.8rem; }
+    .license { margin-top: 0.65rem; font-size: 0.75rem; color: var(--muted); }
+
+    .shell {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      box-shadow: var(--inset);
+      overflow: hidden;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-wrap: wrap;
+    }
+    .brand {
+      font-family: "Aces07", sans-serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .mark {
+      width: 18px; height: 18px;
+      border: 1.5px solid var(--accent);
+      display: grid; place-items: center;
+    }
+    .mark i {
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 7px solid var(--accent);
+    }
+    .nav-links {
+      display: flex; gap: 0.85rem; flex: 1;
+      font-family: "Aces07", sans-serif;
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .nav-links .on { color: var(--accent); position: relative; }
+    .nav-links .on::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -0.45rem;
+      height: 2px; background: var(--accent);
+    }
+    .nav-right { display: flex; gap: 0.5rem; align-items: center; }
+    .chip {
+      font-family: "Aces07", sans-serif;
+      font-size: 0.55rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.45rem;
+      color: var(--muted);
+      background: var(--raised);
+    }
+    .btn {
+      font-family: "Aces07", sans-serif;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: none;
+      background: var(--accent);
+      color: var(--accent-contrast);
+      padding: 0.4rem 0.65rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .stage { padding: 0.85rem; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0.75rem; }
+    @media (max-width: 800px) { .stage { grid-template-columns: 1fr; } }
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 0.75rem;
+    }
+    .kpi { background: var(--surface); padding: 0.55rem 0.6rem; }
+    .kpi .k {
+      font-family: "Aces07", sans-serif;
+      font-size: 0.5rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .kpi .v {
+      font-family: "Aces07", sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: 0.04em;
+      margin-top: 0.15rem;
+    }
+    .kpi .v.warn { color: var(--accent); }
+    .badge {
+      display: inline-block;
+      font-family: "Aces07", sans-serif;
+      font-size: 0.55rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.35rem;
+      border: 1px solid var(--threat);
+      color: var(--threat);
+    }
+    .settings {
+      border: 1px solid var(--border-strong);
+      background: var(--raised);
+      padding: 0.75rem;
+      box-shadow: var(--inset);
+    }
+    .settings h3 {
+      margin: 0 0 0.5rem;
+      font-family: "Aces07", sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .seg {
+      display: flex; gap: 0;
+      border: 1px solid var(--border);
+      margin-bottom: 0.65rem;
+    }
+    .seg button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: "Aces07", sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.4rem;
+      cursor: pointer;
+    }
+    .seg button[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--accent-contrast);
+    }
+    .mini-themes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.35rem; }
+    .mini-themes button {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.58rem;
+      padding: 0.35rem 0.25rem;
+      cursor: pointer;
+      font-family: "Aces07", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .mini-themes button.on { border-color: var(--accent); color: var(--accent); }
+
+    /* Map section — Subversive View monitor choropleth language */
+    .map-block {
+      border: 1px solid var(--border);
+      background: #0a0e14;
+      box-shadow: var(--inset);
+      overflow: hidden;
+    }
+    .map-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .map-toolbar .title {
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .map-toolbar .sub {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .map-modes { display: flex; border: 1px solid var(--border); }
+    .map-modes button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.55rem;
+      cursor: pointer;
+      font-family: "Aces07", sans-serif;
+    }
+    .map-modes button[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--accent-contrast);
+    }
+    .map-canvas {
+      position: relative;
+      height: 260px;
+      background:
+        radial-gradient(ellipse at 50% 55%, #121820 0%, #070a10 70%),
+        #070a10;
+      overflow: hidden;
+    }
+    .choropleth {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .choropleth path {
+      stroke: #3a4450;
+      stroke-width: 0.6;
+      transition: fill 160ms ease, opacity 160ms ease;
+    }
+    .map-canvas[data-mode="pinpoint"] .choropleth path {
+      fill: #1a222d !important;
+      fill-opacity: 0.35;
+    }
+    .map-canvas[data-mode="country"] .pin-layer { opacity: 0; pointer-events: none; }
+    .map-canvas[data-mode="pinpoint"] .pin-layer { opacity: 1; }
+    .pin-layer { position: absolute; inset: 0; transition: opacity 160ms ease; }
+    .pin {
+      position: absolute;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--pin);
+      border: 1.5px solid color-mix(in oklab, var(--text) 50%, var(--pin));
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--pin) 22%, transparent);
+      transform: translate(-50%, -50%);
+    }
+    .red-alert-map-legend {
+      position: absolute;
+      right: 0.55rem; bottom: 0.55rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: color-mix(in oklab, #0e141c 90%, transparent);
+      border: 1px solid #2a3440;
+      padding: 0.3rem 0.45rem;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8a96a4;
+    }
+    .red-alert-map-legend-bar {
+      width: 72px;
+      height: 8px;
+      border-radius: 1px;
+      background: linear-gradient(90deg, #1a222d 0%, #7a2040 45%, #e84a6a 78%, #ff7ab0 100%);
+      border: 1px solid #3a4450;
+    }
+    .map-attr {
+      position: absolute;
+      left: 0.55rem; bottom: 0.55rem;
+      font-size: 0.5rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #5a6572;
+    }
+
+    .chat {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      min-height: 240px;
+      box-shadow: var(--inset);
+    }
+    .chat-head {
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .chat-head .title {
+      font-family: "Aces07", sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .chat-body {
+      flex: 1;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      overflow: auto;
+    }
+    .day {
+      align-self: center;
+      font-family: "Aces07", sans-serif;
+      font-size: 0.55rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.45rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .bubble {
+      align-self: flex-start;
+      max-width: 92%;
+      background: var(--bubble);
+      border: 1px solid var(--border);
+      border-radius: 2px 14px 14px 14px;
+      padding: 0.55rem 0.7rem;
+      box-shadow: var(--inset);
+    }
+    .bubble .who {
+      font-family: "Aces07", sans-serif;
+      font-size: 0.55rem;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .bubble pre {
+      margin: 0;
+      font-family: "Aces07", sans-serif;
+      font-size: 0.68rem;
+      white-space: pre-wrap;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .chat-foot {
+      border-top: 1px solid var(--border);
+      padding: 0.45rem 0.7rem;
+      background: var(--surface);
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .fake-input {
+      flex: 1;
+      border: 1px solid var(--border);
+      background: var(--raised);
+      color: var(--muted);
+      font-family: "Aces07", sans-serif;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.55rem;
+      opacity: 0.65;
+    }
+    .footer-mock {
+      margin-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0.45rem 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      font-family: "Aces07", sans-serif;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .footer-mock a { color: var(--muted); text-decoration: none; margin-right: 0.65rem; }
+    .footer-mock a:hover { color: var(--accent); }
+    .checks {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .checks li { margin: 0.35rem 0; padding-left: 1rem; position: relative; }
+    .checks li::before { content: "·"; position: absolute; left: 0; color: var(--accent); }
+    .approve {
+      margin-top: 1.25rem;
+      padding: 1rem;
+      border: 1px dashed var(--border-strong);
+      background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+    }
+    .approve strong { color: var(--text); font-family: "Aces07", sans-serif; letter-spacing: 0.05em; text-transform: uppercase; }
+    .new { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">Phase 0 · mood board · rev 3 · not production</p>
+    <h1>Overlord redesign</h1>
+    <p class="lede">
+      Revisions: <span class="new">+cobalt / +violet</span> themes,
+      typeface <span class="new">Aces07 everywhere</span>
+      (<a href="https://www.dafont.com/ace-combat.d11270" style="color:var(--accent)">DaFont · Ace Combat</a>),
+      map <span class="new">choropleth Country / Pinpoint</span> (Subversive View monitor layer).
+      Click themes to preview.
+    </p>
+
+    <section class="panel" aria-label="Theme picker">
+      <h2>Six complete themes</h2>
+      <div class="themes" id="themes">
+        <button type="button" class="theme-btn" data-theme="obsidian" aria-pressed="true">
+          <strong>obsidian</strong>
+          <div class="swatch-row" aria-hidden="true">
+            <span style="background:#0c0e0d"></span><span style="background:#151916"></span>
+            <span style="background:#e07a3a"></span><span style="background:#e8a03a"></span>
+          </div>
+          <span class="meta">default · amber</span>
+        </button>
+        <button type="button" class="theme-btn" data-theme="mangrove" aria-pressed="false">
+          <strong>mangrove</strong>
+          <div class="swatch-row" aria-hidden="true">
+            <span style="background:#0a1210"></span><span style="background:#12201b"></span>
+            <span style="background:#c47a4a"></span><span style="background:#d4a04a"></span>
+          </div>
+          <span class="meta">MY green · copper</span>
+        </button>
+        <button type="button" class="theme-btn" data-theme="graphite" aria-pressed="false">
+          <strong>graphite</strong>
+          <div class="swatch-row" aria-hidden="true">
+            <span style="background:#e8ebee"></span><span style="background:#f4f6f8"></span>
+            <span style="background:#b85a28"></span><span style="background:#1a1f24"></span>
+          </div>
+          <span class="meta">cool light</span>
+        </button>
+        <button type="button" class="theme-btn" data-theme="phosphor" aria-pressed="false">
+          <strong>phosphor</strong>
+          <div class="swatch-row" aria-hidden="true">
+            <span style="background:#050805"></span><span style="background:#0b120c"></span>
+            <span style="background:#3ddc84"></span><span style="background:#c8e86a"></span>
+          </div>
+          <span class="meta">terminal green</span>
+        </button>
+        <button type="button" class="theme-btn" data-theme="cobalt" aria-pressed="false">
+          <strong>cobalt <span class="new">new</span></strong>
+          <div class="swatch-row" aria-hidden="true">
+            <span style="background:#070b12"></span><span style="background:#0e1520"></span>
+            <span style="background:#3b82f6"></span><span style="background:#60a5fa"></span>
+          </div>
+          <span class="meta">blue ops</span>
+        </button>
+        <button type="button" class="theme-btn" data-theme="violet" aria-pressed="false">
+          <strong>violet <span class="new">new</span></strong>
+          <div class="swatch-row" aria-hidden="true">
+            <span style="background:#0c0912"></span><span style="background:#16101f"></span>
+            <span style="background:#a78bfa"></span><span style="background:#c4b5fd"></span>
+          </div>
+          <span class="meta">purple ops</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Typography</h2>
+      <div class="type-row">
+        <div class="type-card">
+          <div class="label">Display</div>
+          <div class="t-display">Needs attention</div>
+        </div>
+        <div class="type-card">
+          <div class="label">Body · same face</div>
+          <div class="t-body">Malaysia-first pulse across ransomware, news, and public actors.</div>
+        </div>
+        <div class="type-card">
+          <div class="label">Data · same face</div>
+          <div class="t-mono">109.70.100.2 · 15:48:02 MYT · #1338922</div>
+        </div>
+      </div>
+      <p class="license">
+        Single typeface: <strong>Aces07</strong> everywhere (DaFont · free for personal use). File: <code>public/fonts/ACES07_Regular.ttf</code>
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Shell · settings · footer</h2>
+      <div class="shell">
+        <div class="nav">
+          <div class="brand"><span class="mark"><i></i></span> Overlord</div>
+          <div class="nav-links">
+            <span class="on">Overview</span>
+            <span>Public Data</span>
+            <span>Ransomware</span>
+            <span>News</span>
+            <span>Telegram</span>
+          </div>
+          <div class="nav-right">
+            <span class="chip">15:48 MYT</span>
+            <button type="button" class="btn-ghost btn" tabindex="-1">Settings</button>
+          </div>
+        </div>
+        <div class="stage">
+          <div>
+            <div class="kpi-strip">
+              <div class="kpi"><div class="k">MY victims</div><div class="v">248</div></div>
+              <div class="kpi"><div class="k">News</div><div class="v">266</div></div>
+              <div class="kpi"><div class="k">Actors</div><div class="v">3878</div></div>
+              <div class="kpi"><div class="k">High threat</div><div class="v warn">658</div></div>
+            </div>
+            <div style="border:1px solid var(--border); background:var(--raised); padding:0.55rem 0.65rem; box-shadow:var(--inset)">
+              <span class="badge">Critical</span>
+              <span style="margin-left:0.5rem; font-size:0.85rem">Rising cyber threats push Malaysia…</span>
+            </div>
+          </div>
+          <div class="settings">
+            <h3>Settings</h3>
+            <p class="meta" style="margin:0 0 0.35rem">Language</p>
+            <div class="seg" role="group" aria-label="Language">
+              <button type="button" aria-pressed="true">EN</button>
+              <button type="button" aria-pressed="false">MS</button>
+            </div>
+            <p class="meta" style="margin:0 0 0.35rem">Theme</p>
+            <div class="mini-themes" id="miniThemes">
+              <button type="button" data-theme="obsidian" class="on">Obs</button>
+              <button type="button" data-theme="mangrove">Man</button>
+              <button type="button" data-theme="graphite">Gra</button>
+              <button type="button" data-theme="phosphor">Pho</button>
+              <button type="button" data-theme="cobalt">Cob</button>
+              <button type="button" data-theme="violet">Vio</button>
+            </div>
+          </div>
+        </div>
+        <div class="footer-mock">
+          <span>
+            <strong style="color:var(--text); font-weight:500">Overlord · MY watch</strong>
+            <a href="#">Overview</a>
+            <a href="#">Public Data</a>
+            <a href="#">Ransomware</a>
+          </span>
+          <span>LAN / local · theme: <span id="ftTheme">obsidian</span> · lang: EN</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Map · choropleth / pinpoint <span class="new">rev</span></h2>
+      <p class="meta" style="margin:-0.25rem 0 0.75rem">
+        Layer language from Subversive View geopolitics monitor — dark basemap + country polygon fills + 0→1 legend. Pinpoint overlays IP pins.
+      </p>
+      <div class="map-block">
+        <div class="map-toolbar">
+          <div>
+            <div class="title">Cases by country</div>
+            <span class="sub" id="mapSub">Choropleth — darker fill = more cases</span>
+          </div>
+          <div class="map-modes" role="group" aria-label="Map mode">
+            <button type="button" data-map="country" aria-pressed="true">Country</button>
+            <button type="button" data-map="pinpoint" aria-pressed="false">Pinpoint</button>
+          </div>
+        </div>
+        <div class="map-canvas" id="mapCanvas" data-mode="country">
+          <svg class="choropleth" viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <!-- Stylized landmasses (not exact geo) — monitor layer look -->
+            <path fill="#1a222d" fill-opacity="0.55" d="M80 140 L210 110 L260 150 L240 220 L150 250 L90 200 Z"/>
+            <path fill="#1a222d" fill-opacity="0.55" d="M220 250 L300 240 L320 310 L250 340 L210 300 Z"/>
+            <path fill="#7a2040" fill-opacity="0.75" d="M430 120 L520 100 L580 140 L560 210 L480 230 L440 180 Z"/>
+            <path fill="#1a222d" fill-opacity="0.55" d="M560 230 L620 220 L640 280 L590 300 L550 270 Z"/>
+            <path fill="#e84a6a" fill-opacity="0.85" d="M680 250 L760 240 L790 300 L740 340 L690 310 Z"/>
+            <path fill="#1a222d" fill-opacity="0.55" d="M780 140 L880 130 L920 180 L900 240 L820 250 L790 190 Z"/>
+            <path fill="#ff7ab0" fill-opacity="0.9" d="M720 300 L770 295 L785 340 L745 365 L715 335 Z"/>
+            <path fill="#1a222d" fill-opacity="0.5" d="M300 360 L420 350 L450 410 L360 430 L290 400 Z"/>
+          </svg>
+          <div class="pin-layer">
+            <span class="pin" style="left:72%; top:58%"></span>
+            <span class="pin" style="left:74%; top:62%"></span>
+            <span class="pin" style="left:70%; top:55%"></span>
+            <span class="pin" style="left:48%; top:32%"></span>
+            <span class="pin" style="left:18%; top:35%"></span>
+          </div>
+          <div class="map-attr">OSM · CARTO dark · GeoJSON layer</div>
+          <div class="red-alert-map-legend" aria-hidden="true">
+            <span>0</span>
+            <div class="red-alert-map-legend-bar"></div>
+            <span>1</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Telegram · chatroom</h2>
+      <div class="chat">
+        <div class="chat-head">
+          <div>
+            <div class="title">@breachdetect</div>
+            <div class="meta">Data Leak Monitor · 50 stored</div>
+          </div>
+          <button type="button" class="btn" tabindex="-1">Refresh</button>
+        </div>
+        <div class="chat-body">
+          <div class="day">12 Nov 2026</div>
+          <div class="bubble">
+            <div class="who"><span>#1338922</span><span>08:04Z</span></div>
+            <pre>{ "Type": "Data leak", "Content": "595.824 Lines Streaming…" }</pre>
+          </div>
+        </div>
+        <div class="chat-foot">
+          <div class="fake-input">Archive only — open on Telegram to reply</div>
+          <button type="button" class="btn-ghost btn" tabindex="-1">Open</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Impeccable notes</h2>
+      <ul class="checks">
+        <li>Violet/cobalt are full themes you requested — still no purple-on-white gradient “slop” default</li>
+        <li>Aces07 for all UI text (display, body, data) — Subversive View–style ops map uses choropleth layers</li>
+        <li>Map modes share one stage — one control, no duplicate map widgets</li>
+      </ul>
+    </section>
+
+    <div class="approve">
+      <strong>Your call</strong>
+      <p style="margin:0.4rem 0 0; color:var(--muted); font-size:0.9rem">
+        Reply <em>approve</em> to lock rev 2 and continue Phase 1, or list further revisions.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function setTheme(id) {
+      document.documentElement.dataset.theme = id;
+      document.querySelectorAll(".theme-btn").forEach((b) => {
+        b.setAttribute("aria-pressed", String(b.dataset.theme === id));
+      });
+      document.querySelectorAll("#miniThemes button").forEach((b) => {
+        b.classList.toggle("on", b.dataset.theme === id);
+      });
+      const ft = document.getElementById("ftTheme");
+      if (ft) ft.textContent = id;
+    }
+    document.getElementById("themes").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-theme]");
+      if (btn) setTheme(btn.dataset.theme);
+    });
+    document.getElementById("miniThemes").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-theme]");
+      if (btn) setTheme(btn.dataset.theme);
+    });
+    document.querySelector(".seg").addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      document.querySelectorAll(".seg button").forEach((b) =>
+        b.setAttribute("aria-pressed", String(b === btn)),
+      );
+    });
+    document.querySelector(".map-modes").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-map]");
+      if (!btn) return;
+      const mode = btn.dataset.map;
+      document.querySelectorAll(".map-modes button").forEach((b) =>
+        b.setAttribute("aria-pressed", String(b === btn)),
+      );
+      const canvas = document.getElementById("mapCanvas");
+      canvas.dataset.mode = mode;
+      const sub = document.getElementById("mapSub");
+      if (sub) {
+        sub.textContent =
+          mode === "country"
+            ? "Choropleth — darker fill = more cases"
+            : "Pinpoint — IP / actor pins on muted country layer";
+      }
+    });
+  </script>
+</body>
+</html>

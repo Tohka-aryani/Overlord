@@ -74,60 +74,45 @@ describe("classificationSchema", () => {
     ).toBe(true);
   });
 
-  it("rejects unknown threat_level", () => {
+  it("coerces unknown enums to safe defaults", () => {
     const result = classificationSchema.safeParse({
       ...valid,
       threat_level: "Severe",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects unknown category", () => {
-    const result = classificationSchema.safeParse({
-      ...valid,
       category: "Malware",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects unknown malaysia_relevance", () => {
-    const result = classificationSchema.safeParse({
-      ...valid,
       malaysia_relevance: "Maybe",
+      sector: "Manufacturing",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.threat_level).toBe("Info");
+      expect(result.data.category).toBe("Other");
+      expect(result.data.malaysia_relevance).toBe("None");
+      expect(result.data.sector).toBe("Other");
+    }
   });
 
-  it("rejects unknown sector", () => {
-    const result = classificationSchema.safeParse({
-      ...valid,
-      sector: "Retail",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects confidence outside 0–1", () => {
+  it("clamps confidence outside 0–1", () => {
     expect(
       classificationSchema.safeParse({ ...valid, confidence: -0.01 }).success,
-    ).toBe(false);
+    ).toBe(true);
     expect(
-      classificationSchema.safeParse({ ...valid, confidence: 1.01 }).success,
-    ).toBe(false);
+      classificationSchema.safeParse({ ...valid, confidence: 1.01 }).data
+        ?.confidence,
+    ).toBe(1);
   });
 
-  it("rejects empty rationale", () => {
+  it("fills empty rationale", () => {
     const result = classificationSchema.safeParse({
       ...valid,
       rationale: "",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.rationale).toBe("Unspecified");
+    }
   });
 
-  it("rejects missing required fields", () => {
-    const { rationale: _r, ...missingRationale } = valid;
-    expect(classificationSchema.safeParse(missingRationale).success).toBe(
-      false,
-    );
+  it("rejects empty object", () => {
     expect(classificationSchema.safeParse({}).success).toBe(false);
   });
 });

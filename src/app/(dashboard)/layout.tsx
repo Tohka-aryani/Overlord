@@ -7,9 +7,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--bg)] text-[var(--text)]">
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-[var(--bg)] text-[var(--text)]">
       <TopNav />
-      <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col">
+      {/* Full-bleed scroll host — scrollbar rides the viewport edge, not an inset column */}
+      <div className="ol-scroll-host flex min-h-0 w-full flex-1 flex-col overflow-hidden">
         {children}
       </div>
       <SiteFooter />

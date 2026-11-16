@@ -44,8 +44,8 @@ export function victimKey(
 }
 
 /**
- * Normalize countryvictims row.
- * Field map: post_title→victim, group_name→group, activity→sector, post_url→claim_url.
+ * Normalize ransomware.live victim rows (countryvictims / recentvictims / yearly).
+ * Field map: post_title|victim, group_name|group, activity→sector, post_url|claim_url|url.
  */
 export function normalizeCountryVictim(
   row: unknown,
@@ -64,13 +64,24 @@ export function normalizeCountryVictim(
   const discoveredRaw = asString(r.discovered);
   const discoveredAt = discoveredRaw ? new Date(discoveredRaw) : null;
 
+  const countryRaw = asString(r.country)?.toUpperCase() ?? null;
+  const country =
+    countryRaw && countryRaw !== "?" && countryRaw !== "NULL"
+      ? countryRaw
+      : null;
+
+  const claim =
+    claimUrlText(r.post_url) ??
+    claimUrlText(r.claim_url) ??
+    claimUrlText(r.url);
+
   return {
     victim,
     group,
-    country: asString(r.country)?.toUpperCase() ?? null,
+    country,
     sector: asString(r.activity) ?? asString(r.sector),
     attackDate,
-    claimUrl: claimUrlText(r.post_url) ?? claimUrlText(r.claim_url),
+    claimUrl: claim,
     discoveredAt:
       discoveredAt && !Number.isNaN(discoveredAt.getTime())
         ? discoveredAt

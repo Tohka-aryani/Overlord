@@ -58,7 +58,7 @@ Extend `ransomware_victims`:
 |---|---|
 | `GET https://www.ransomlook.io/api/recent` | Last ~100 posts (fast poll) |
 | `GET https://www.ransomlook.io/api/posts?days=N` | Windowed backfill (7/30) |
-| `GET https://www.ransomlook.io/api/search?query=malaysia` | MY-oriented enrichment |
+| `GET https://www.ransomlook.io/api/search?q=malaysia` | MY-oriented enrichment (live API uses `q`, not `query`) |
 
 Normalize to existing victim record shape:
 

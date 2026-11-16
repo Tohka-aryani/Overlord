@@ -1,11 +1,12 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   classifications,
   ingestRuns,
   ransomwareVictims,
 } from "@/db/schema";
-import { classifyEntity } from "@/lib/ollama";
+import { classifyEntity, lastResolvedOllamaModel } from "@/lib/ollama";
+import { inferCountryFromText } from "@/lib/geo/infer-country";
 import {
   normalizeCountryVictim,
   normalizeCyberattack,
@@ -29,7 +30,7 @@ const MAX_CONSECUTIVE_CLASSIFY_NULLS = 3;
 /** Cap classifyEntity calls per ingest run (serverless maxDuration budget). */
 export const MAX_CLASSIFY_PER_RUN = Math.max(
   0,
-  Number.parseInt(process.env.MAX_CLASSIFY_PER_RUN ?? "5", 10) || 5,
+  Number.parseInt(process.env.MAX_CLASSIFY_PER_RUN ?? "25", 10) || 25,
 );
 
 export type IngestRansomwareResult = {
@@ -45,6 +46,7 @@ export type IngestRansomwareResult = {
     updated: number;
     classified: number;
     unclassified: number;
+    countryBackfilled?: number;
   };
   error?: string;
 };
@@ -94,17 +96,29 @@ async function upsertVictims(
         eq(ransomwareVictims.group, rec.group),
         eq(ransomwareVictims.attackDate, rec.attackDate),
       ),
-      columns: { id: true },
+      columns: {
+        id: true,
+        sources: true,
+        country: true,
+        sector: true,
+        claimUrl: true,
+      },
     });
 
     if (existing) {
+      const sources = [
+        ...new Set([...(existing.sources ?? []), "ransomware.live"]),
+      ];
       await db
         .update(ransomwareVictims)
         .set({
-          country: rec.country,
-          sector: rec.sector,
-          claimUrl: rec.claimUrl,
+          country: rec.country ?? existing.country ?? null,
+          sector: rec.sector ?? existing.sector ?? null,
+          claimUrl: rec.claimUrl ?? existing.claimUrl ?? null,
+          source: "ransomware.live",
+          sources,
           rawJson: rec.rawJson,
+          ...(rec.discoveredAt ? { discoveredAt: rec.discoveredAt } : {}),
         })
         .where(eq(ransomwareVictims.id, existing.id));
       updated += 1;
@@ -118,6 +132,8 @@ async function upsertVictims(
           sector: rec.sector,
           attackDate: rec.attackDate,
           claimUrl: rec.claimUrl,
+          source: "ransomware.live",
+          sources: ["ransomware.live"],
           rawJson: rec.rawJson,
           ...(rec.discoveredAt ? { discoveredAt: rec.discoveredAt } : {}),
         })
@@ -192,7 +208,10 @@ async function classifyNewVictims(
       sector: result.sector,
       confidence: result.confidence,
       rationale: result.rationale,
-      model: process.env.OLLAMA_MODEL || "qwen2.5:14b",
+      model:
+        lastResolvedOllamaModel() ||
+        process.env.OLLAMA_MODEL ||
+        "llama3.2:latest",
     });
     classified += 1;
   }
@@ -200,15 +219,67 @@ async function classifyNewVictims(
   return { classified, unclassified };
 }
 
+function pushUnique(
+  out: NormalizedVictim[],
+  seen: Set<string>,
+  n: NormalizedVictim,
+) {
+  const key = victimKey(n);
+  if (seen.has(key)) return;
+  seen.add(key);
+  const country =
+    n.country ?? inferCountryFromText(n.victim, n.sector) ?? null;
+  out.push(country === n.country ? n : { ...n, country });
+}
+
+/** Backfill null countries from victim text / matching rows with a country. */
+async function backfillMissingCountries(): Promise<number> {
+  const missing = await db
+    .select({
+      id: ransomwareVictims.id,
+      victim: ransomwareVictims.victim,
+      group: ransomwareVictims.group,
+      sector: ransomwareVictims.sector,
+    })
+    .from(ransomwareVictims)
+    .where(isNull(ransomwareVictims.country))
+    .limit(5000);
+
+  let updated = 0;
+  for (const row of missing) {
+    const inferred = inferCountryFromText(row.victim, row.sector);
+    if (!inferred) continue;
+    await db
+      .update(ransomwareVictims)
+      .set({ country: inferred })
+      .where(eq(ransomwareVictims.id, row.id));
+    updated += 1;
+  }
+
+  // Copy country from same victim+group when another source already has it.
+  await db.execute(sql`
+    UPDATE ransomware_victims AS a
+    SET country = b.country
+    FROM ransomware_victims AS b
+    WHERE a.country IS NULL
+      AND b.country IS NOT NULL
+      AND lower(a.victim) = lower(b.victim)
+      AND lower(a."group") = lower(b."group")
+      AND a.id <> b.id
+  `);
+
+  return updated;
+}
+
 /**
- * Poll ransomware.live MY (or given ISO2) victims + cyberattacks,
- * upsert archive rows, classify new inserts via Ollama when available.
+ * Poll ransomware.live — country mode (default MY) or global recent + yearly dumps.
  * Never fetches Tor claim_url values — stored as text only.
  */
 export async function ingestRansomware(options?: {
   country?: string;
 }): Promise<IngestRansomwareResult> {
   const country = (options?.country ?? "MY").toUpperCase();
+  const global = country === "ALL" || country === "*";
   const startedAt = new Date();
   const [run] = await db
     .insert(ingestRuns)
@@ -234,17 +305,60 @@ export async function ingestRansomware(options?: {
   let partialCounts = { ...emptyCounts };
 
   try {
-    const victimsPayload = await fetchRansomwareLive(
-      `/countryvictims/${country}`,
-    );
-    // Respect ~1 req/min per endpoint before the second call.
-    await sleep(RANSOMWARE_LIVE_MIN_INTERVAL_MS);
-    const cyberPayload = await fetchRansomwareLive(
-      `/countrycyberattacks/${country}`,
-    );
+    const normalized: NormalizedVictim[] = [];
+    const seen = new Set<string>();
+    let victimRows: unknown[] = [];
+    let cyberRows: unknown[] = [];
 
-    const victimRows = Array.isArray(victimsPayload) ? victimsPayload : [];
-    const cyberRows = Array.isArray(cyberPayload) ? cyberPayload : [];
+    if (global) {
+      const year = new Date().getUTCFullYear();
+      const paths = [
+        "/recentvictims",
+        `/victims/${year}`,
+        `/victims/${year - 1}`,
+      ];
+      for (let i = 0; i < paths.length; i++) {
+        if (i > 0) await sleep(RANSOMWARE_LIVE_MIN_INTERVAL_MS);
+        const payload = await fetchRansomwareLive(paths[i]!);
+        const rows = Array.isArray(payload) ? payload : [];
+        victimRows = victimRows.concat(rows);
+        for (const row of rows) {
+          const n = normalizeCountryVictim(row);
+          if (n) pushUnique(normalized, seen, n);
+        }
+      }
+    } else {
+      const victimsPayload = await fetchRansomwareLive(
+        `/countryvictims/${country}`,
+      );
+      await sleep(RANSOMWARE_LIVE_MIN_INTERVAL_MS);
+      const cyberPayload = await fetchRansomwareLive(
+        `/countrycyberattacks/${country}`,
+      );
+
+      victimRows = Array.isArray(victimsPayload) ? victimsPayload : [];
+      cyberRows = Array.isArray(cyberPayload) ? cyberPayload : [];
+
+      for (const row of victimRows) {
+        const n = normalizeCountryVictim(row);
+        if (!n) continue;
+        if (n.country && n.country !== country) continue;
+        pushUnique(normalized, seen, {
+          ...n,
+          country: n.country ?? country,
+        });
+      }
+
+      for (const row of cyberRows) {
+        const n = normalizeCyberattack(row);
+        if (!n) continue;
+        if (n.country && n.country !== country) continue;
+        pushUnique(normalized, seen, {
+          ...n,
+          country: n.country ?? country,
+        });
+      }
+    }
 
     partialCounts = {
       ...emptyCounts,
@@ -252,31 +366,12 @@ export async function ingestRansomware(options?: {
       fetchedCyberattacks: cyberRows.length,
     };
 
-    const normalized: NormalizedVictim[] = [];
-    const seen = new Set<string>();
-
-    for (const row of victimRows) {
-      const n = normalizeCountryVictim(row);
-      if (!n) continue;
-      if (n.country && n.country !== country) continue;
-      const key = victimKey(n);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      normalized.push({ ...n, country: n.country ?? country });
-    }
-
-    for (const row of cyberRows) {
-      const n = normalizeCyberattack(row);
-      if (!n) continue;
-      if (n.country && n.country !== country) continue;
-      const key = victimKey(n);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      normalized.push({ ...n, country: n.country ?? country });
-    }
-
     const { insertedIds, updated, upserted } = await upsertVictims(normalized);
-    const { classified, unclassified } = await classifyNewVictims(insertedIds);
+    // Global dumps are large — defer classify to /api/ingest/classify-backfill.
+    const { classified, unclassified } = global
+      ? { classified: 0, unclassified: insertedIds.length }
+      : await classifyNewVictims(insertedIds);
+    const countryBackfilled = await backfillMissingCountries();
 
     const counts = {
       fetchedVictims: victimRows.length,
@@ -286,6 +381,7 @@ export async function ingestRansomware(options?: {
       updated,
       classified,
       unclassified,
+      countryBackfilled,
     };
     partialCounts = counts;
 
@@ -302,7 +398,7 @@ export async function ingestRansomware(options?: {
     runFinalized = true;
     return {
       source: "ransomware.live",
-      country,
+      country: global ? "ALL" : country,
       status: "success",
       ingestRunId: run.id,
       counts,
@@ -322,7 +418,7 @@ export async function ingestRansomware(options?: {
     runFinalized = true;
     return {
       source: "ransomware.live",
-      country,
+      country: global ? "ALL" : country,
       status: "error",
       ingestRunId: run.id,
       counts: partialCounts,

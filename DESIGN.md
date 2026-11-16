@@ -1,43 +1,57 @@
-# DESIGN.md — Overlord
+# Overlord — Design system
 
-## Direction
+Malaysia-first dark-web monitoring console for CTI / SOC analysts on a LAN.
 
-**Industrial overwatch console** for Malaysia CTI. Charcoal (Night) / warm paper (Day). Accent is burnt amber — threat and brand, not purple glow. Brand **Overlord** is chrome-level identity (logo + wordmark), not an eyebrow.
+## Intent
 
-Design systems referenced: [Design with Intent](https://designwithintent.ai/) (autonomy, systems over screens, evidence) and [Impeccable](https://impeccable.style/) (anti-slop craft).
-
-## Tokens
-
-| Token | Role |
-| --- | --- |
-| `--bg` / `--surface` | App base / panels |
-| `--text` / `--muted` | Hierarchy |
-| `--accent` | Brand + interactive focus |
-| `--threat` | Critical / High severity |
-| `--ok` / `--info` | Lower severities / status |
-
-Themes: `data-theme="night" | "day"` on `<html>`. User can switch; preference stored in `localStorage`.
-
-## Layout
-
-- **Top nav:** Overlord mark, primary tabs, live MYT/UTC clock, Night/Day toggle
-- **Main stage:** tables, maps, ranked lists — no card soup
-- **Footer:** product context, sources, ops notes
-
-## Map
-
-- Square pin + ring (MY accent pulse on Malaysia ISO)
-- Rich popup: actor, IP, country pill, host, lat/lon, centroid disclaimer
-- Cluster spiderfy; tiles follow theme (dark_all / voyager)
-
-## Anti-slop (Impeccable)
-
-- No chip piles, nested cards, purple gradients, pulsing LIVE theater
-- Motion for hierarchy only (nav underline, drawer, MY pin ring)
-- One primary action per view; threat outranks chrome
+| | |
+|---|---|
+| **Users** | CTI analysts scanning MY-relevant signals |
+| **Job** | Notice high-threat signals in ~10s, then drill archives |
+| **Mode** | Operate (not persuade) |
+| **Success** | Faster scan; clear theme / locale / map mode without chrome noise |
 
 ## Typography
 
-- Display: Syne
-- Body: IBM Plex Sans
-- Mono: IBM Plex Mono (IPs, times, counts)
+**Aces07** for all UI text (display, body, data, charts).  
+File: `public/fonts/ACES07_Regular.ttf` · [DaFont · Ace Combat](https://www.dafont.com/ace-combat.d11270) (personal use).
+
+CSS: `--font-ui` / `--font-display` / `--font-body` / `--font-mono` all resolve to Aces07.
+
+## Themes (6)
+
+Persisted as `localStorage.overlord-theme`. Legacy `night` → `obsidian`, `day` → `graphite`.
+
+| ID | Look |
+|----|------|
+| `obsidian` | Charcoal + amber (default) |
+| `mangrove` | MY green + copper |
+| `graphite` | Cool light steel |
+| `phosphor` | OLED + green |
+| `cobalt` | Blue ops |
+| `violet` | Purple ops |
+
+Tokens live on `html[data-theme]` in `src/app/globals.css`.
+
+## Locale
+
+EN default + MS. Persisted as `localStorage.overlord-locale`. Keys in `src/messages/{en,ms}.json`.
+
+## Surfaces
+
+REKKI-inspired: hairline borders, `--inset-hairline`, one accent action per viewport. Slim footer so ops pages fit one viewport.
+
+## Map (Overview)
+
+Subversive View / geopolitics-monitor language:
+
+- **Country** — GeoJSON choropleth (`public/geo/countries-110m.geojson`); fill scales with case count
+- **Pinpoint** — muted country layer + case centroid pins
+
+## Charts
+
+Prefer interactive SVG/CSS charts (`ColumnChart`, `DonutChart`, `HBarChart`): hover highlight, click-to-filter when a page filter exists. No extra chart library.
+
+## Chat
+
+Telegram archive uses a chatroom layout (day separators, bubbles) — archive-only; open on Telegram to reply.

@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import Parser from "rss-parser";
 import { db } from "@/db";
 import { classifications, ingestRuns, newsItems } from "@/db/schema";
-import { classifyEntity } from "@/lib/ollama";
+import { classifyEntity, lastResolvedOllamaModel } from "@/lib/ollama";
 import {
   NEWS_KEYWORDS,
   buildGoogleNewsRssUrl,
@@ -23,7 +23,7 @@ const MAX_CONSECUTIVE_CLASSIFY_NULLS = 3;
 /** Cap classifyEntity calls per ingest run (serverless maxDuration budget). */
 export const MAX_CLASSIFY_PER_RUN = Math.max(
   0,
-  Number.parseInt(process.env.MAX_CLASSIFY_PER_RUN ?? "5", 10) || 5,
+  Number.parseInt(process.env.MAX_CLASSIFY_PER_RUN ?? "25", 10) || 25,
 );
 
 type GoogleNewsItem = {
@@ -173,7 +173,10 @@ async function classifyNewNews(
       sector: result.sector,
       confidence: result.confidence,
       rationale: result.rationale,
-      model: process.env.OLLAMA_MODEL || "qwen2.5:14b",
+      model:
+        lastResolvedOllamaModel() ||
+        process.env.OLLAMA_MODEL ||
+        "llama3.2:latest",
     });
     classified += 1;
   }

@@ -8,7 +8,8 @@ See [PRODUCT.md](./PRODUCT.md) and [DESIGN.md](./DESIGN.md) for intent and visua
 
 - Next.js (App Router) + TypeScript + Tailwind
 - Postgres 16 via Docker Compose
-- Ollama on LAN (default `qwen2.5:14b` at `192.168.100.140`)
+- Ollama on LAN (default `llama3.2:latest` — same as NexAtlas; auto-falls back if missing)
+- Dual ransomware sources: [ransomware.live](https://www.ransomware.live) + [RansomLook](https://www.ransomlook.io/)
 
 ## Quick start
 
@@ -22,6 +23,25 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### UI chrome
+
+- **Language:** EN (default) / MS — Settings panel; persisted as `overlord-locale`
+- **Themes (6):** Obsidian · Mangrove · Graphite · Phosphor · Cobalt · Violet — Settings; persisted as `overlord-theme` (legacy `night`/`day` migrate automatically)
+- **Type:** Aces07 for all UI text (`public/fonts/ACES07_Regular.ttf`)
+- **Overview map:** Country choropleth / Pinpoint toggle (Natural Earth GeoJSON)
+- **Telegram:** chatroom-style archive of `@breachdetect`
+- **Charts:** click/hover filters on timeline, donut, and bar charts where filters exist
+
+### Continuous ingest
+
+Keep archive feeds fresh while `next dev` / `next start` is up:
+
+```bash
+npm run ingest:loop
+```
+
+Cycles ransomware.live (MY + periodic ALL), RansomLook (90d), news, Telegram, and classify-backfill every 15 minutes (`INGEST_CYCLE_MS`, `INGEST_ALL_EVERY`, `INGEST_BASE_URL` overridable).
 
 Full stack (web + db):
 
@@ -51,22 +71,30 @@ npm run db:migrate
 
 Classification expects a reachable Ollama host on the LAN, not a cloud API:
 
-1. On `192.168.100.140` (or your host), pull the model: `ollama pull qwen2.5:14b`
-2. Point the app at it via `OLLAMA_BASE_URL` / `OLLAMA_MODEL` in `.env`
-3. If the host or model differs, override those vars — do not hard-code another endpoint in code
+1. Ollama at `192.168.100.140:11434` (same host as NexAtlas)
+2. Preferred model: `OLLAMA_MODEL=llama3.2:latest` (NexAtlas). At runtime the classifier checks `/api/tags` and falls back if the preferred model is not installed
+3. Override `OLLAMA_BASE_URL` / `OLLAMA_MODEL` in `.env` as needed
 
 ## Ingest (curl)
 
 Ingest routes require `CRON_SECRET`. Prefer the `x-cron-secret` header:
 
 ```bash
-# Ransomware (ISO2 country only; default MY — not ALL)
+# Ransomware.live (ISO2 country only; default MY — not ALL)
+# Optional: ?country=SG (any ransomware.live ISO2, e.g. MY, SG, US)
 curl -sS -X POST "http://localhost:3000/api/ingest/ransomware" \
   -H "x-cron-secret: $CRON_SECRET"
-# Optional: ?country=SG (any ransomware.live ISO2, e.g. MY, SG, US)
+
+# RansomLook dual feed (windowed posts + Malaysia search)
+curl -sS -X POST "http://localhost:3000/api/ingest/ransomlook?days=7" \
+  -H "x-cron-secret: $CRON_SECRET"
 
 # News (Google News MY keyword RSS)
 curl -sS -X POST "http://localhost:3000/api/ingest/news" \
+  -H "x-cron-secret: $CRON_SECRET"
+
+# Telegram (@breachdetect via public RSS bridge)
+curl -sS -X POST "http://localhost:3000/api/ingest/telegram" \
   -H "x-cron-secret: $CRON_SECRET"
 ```
 
@@ -115,5 +143,5 @@ GeoLite2 Country MMDB is downloaded into `data/` for ISO enrichment but **not** 
 - Local / LAN v1 only — no public auth yet
 - `GET /api/news` and `GET /api/ransomware?country=ALL` return the full archive with no pagination or cap (acceptable on LAN v1)
 - Never fetch Tor `claim_url` values (stored as text only)
-- Telegram tab is a **Coming soon** placeholder in v1
+- Telegram tab archives [@breachdetect](https://t.me/breachdetect) via RSS bridge (`TELEGRAM_CHANNELS`); schedule `POST /api/ingest/telegram`
 - `data/` is gitignored (large binaries / username dumps)

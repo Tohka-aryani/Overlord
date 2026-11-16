@@ -5,7 +5,9 @@ type ArchiveSparkProps = {
   value: number | string;
   hint: string;
   accent?: boolean;
+  /** Optional sparkline; omit to avoid the decorative line. */
   series?: number[];
+  className?: string;
 };
 
 /** Compact metric with optional sparkline path. */
@@ -15,19 +17,23 @@ export function ArchiveSpark({
   hint,
   accent = false,
   series = [],
+  className = "",
 }: ArchiveSparkProps) {
   const path = sparkPath(series);
+  const long = String(value).length > 10;
 
   return (
-    <div className="border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--border-strong)]">
-      <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
+    <div
+      className={`bg-[var(--surface)] p-4 transition-colors hover:bg-[var(--surface-raised)] ${className}`}
+    >
+      <p className="font-[family-name:var(--font-ui)] text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
         {label}
       </p>
-      <div className="mt-2 flex items-end justify-between gap-3">
+      <div className="mt-2 flex min-h-[2.25rem] items-end justify-between gap-2">
         <p
-          className={`font-mono text-3xl tabular-nums tracking-tight ${
-            accent ? "text-[var(--threat)]" : "text-[var(--text)]"
-          }`}
+          className={`min-w-0 font-[family-name:var(--font-ui)] font-bold tabular-nums tracking-tight leading-none ${
+            long ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"
+          } ${accent ? "text-[var(--threat)]" : "text-[var(--text)]"}`}
         >
           {value}
         </p>

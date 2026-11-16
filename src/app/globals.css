@@ -1,44 +1,173 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
-/* Overlord — industrial ops console (Design with Intent + Impeccable) */
+/* Overlord — Aces07 ops console (6 themes) */
+
+@font-face {
+  font-family: "Aces07";
+  src: url("/fonts/ACES07_Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root,
+html[data-theme="obsidian"],
 html[data-theme="night"] {
-  --bg: #0f1210;
-  --surface: #171c18;
-  --surface-raised: #1f2621;
-  --border: #2a332c;
-  --border-strong: #3d4a40;
-  --text: #e7ece7;
-  --muted: #8a968c;
-  --accent: #d9773a;
+  --bg: #0c0e0d;
+  --surface: #151916;
+  --surface-raised: #1c221e;
+  --border: #2c342e;
+  --border-strong: #3f4a42;
+  --text: #e8ece8;
+  --muted: #8b968d;
+  --accent: #e07a3a;
   --accent-contrast: #140e0a;
   --threat: #e8a03a;
   --threat-dim: #b07828;
   --ok: #5d9a72;
   --info: #6a8a9a;
+  --bubble: #1a211c;
+  --pin: #e07a3a;
+  --country-hot: #e8a03a;
+  --choropleth-base: #1a222d;
+  --choropleth-stroke: #3a4450;
+  --inset-hairline: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --font-ui: "Aces07", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-ui);
+  --font-body: var(--font-ui);
+  --font-mono: var(--font-ui);
+  color-scheme: dark;
+}
+
+html[data-theme="mangrove"] {
+  --bg: #0a1210;
+  --surface: #12201b;
+  --surface-raised: #1a2c25;
+  --border: #2a4036;
+  --border-strong: #3d5a4a;
+  --text: #e4efe8;
+  --muted: #7f9a8a;
+  --accent: #c47a4a;
+  --accent-contrast: #140c08;
+  --threat: #d4a04a;
+  --threat-dim: #a07830;
+  --ok: #4e9a6a;
+  --info: #5a8a8a;
+  --bubble: #162820;
+  --pin: #c47a4a;
+  --country-hot: #4e9a6a;
+  --choropleth-base: #12201b;
+  --choropleth-stroke: #3a5248;
+  --inset-hairline: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
   --background: var(--bg);
   --foreground: var(--text);
   color-scheme: dark;
 }
 
+html[data-theme="graphite"],
 html[data-theme="day"] {
-  --bg: #f3efe6;
-  --surface: #faf7f0;
+  --bg: #e8ebee;
+  --surface: #f4f6f8;
   --surface-raised: #ffffff;
-  --border: #d9d2c4;
-  --border-strong: #b8ae9c;
-  --text: #1a1f1b;
-  --muted: #667066;
-  --accent: #b4531a;
+  --border: #c8ced6;
+  --border-strong: #9aa3ae;
+  --text: #1a1f24;
+  --muted: #5c6670;
+  --accent: #b85a28;
   --accent-contrast: #fff8f0;
   --threat: #b4531a;
   --threat-dim: #8a4014;
   --ok: #2f6b45;
   --info: #3d6578;
+  --bubble: #ffffff;
+  --pin: #b85a28;
+  --country-hot: #3d6578;
+  --choropleth-base: #d8dee6;
+  --choropleth-stroke: #9aa3ae;
+  --inset-hairline: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   --background: var(--bg);
   --foreground: var(--text);
   color-scheme: light;
+}
+
+html[data-theme="phosphor"] {
+  --bg: #050805;
+  --surface: #0b120c;
+  --surface-raised: #121a13;
+  --border: #1e2e20;
+  --border-strong: #2f4632;
+  --text: #d4f5d8;
+  --muted: #6a9070;
+  --accent: #3ddc84;
+  --accent-contrast: #041008;
+  --threat: #c8e86a;
+  --threat-dim: #8aaa40;
+  --ok: #3ddc84;
+  --info: #6ab0a0;
+  --bubble: #0e1810;
+  --pin: #3ddc84;
+  --country-hot: #c8e86a;
+  --choropleth-base: #0a140c;
+  --choropleth-stroke: #2a3e2c;
+  --inset-hairline: inset 0 0 0 1px rgba(61, 220, 132, 0.12);
+  --background: var(--bg);
+  --foreground: var(--text);
+  color-scheme: dark;
+}
+
+html[data-theme="cobalt"] {
+  --bg: #070b12;
+  --surface: #0e1520;
+  --surface-raised: #152033;
+  --border: #243044;
+  --border-strong: #3a5070;
+  --text: #e6eef8;
+  --muted: #7a8fa8;
+  --accent: #3b82f6;
+  --accent-contrast: #041018;
+  --threat: #60a5fa;
+  --threat-dim: #3b6fb0;
+  --ok: #34d399;
+  --info: #38bdf8;
+  --bubble: #121c2c;
+  --pin: #3b82f6;
+  --country-hot: #60a5fa;
+  --choropleth-base: #0c1420;
+  --choropleth-stroke: #3a4450;
+  --inset-hairline: inset 0 0 0 1px rgba(96, 165, 250, 0.14);
+  --background: var(--bg);
+  --foreground: var(--text);
+  color-scheme: dark;
+}
+
+html[data-theme="violet"] {
+  --bg: #0c0912;
+  --surface: #16101f;
+  --surface-raised: #1f162c;
+  --border: #322448;
+  --border-strong: #4a3568;
+  --text: #f0e8fa;
+  --muted: #9580b0;
+  --accent: #a78bfa;
+  --accent-contrast: #12081c;
+  --threat: #c4b5fd;
+  --threat-dim: #8a78c0;
+  --ok: #6ee7b7;
+  --info: #93c5fd;
+  --bubble: #1a1228;
+  --pin: #a78bfa;
+  --country-hot: #c4b5fd;
+  --choropleth-base: #14101c;
+  --choropleth-stroke: #3a4450;
+  --inset-hairline: inset 0 0 0 1px rgba(167, 139, 250, 0.16);
+  --background: var(--bg);
+  --foreground: var(--text);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -49,16 +178,58 @@ html[data-theme="day"] {
   --color-muted: var(--muted);
   --color-ok: var(--ok);
   --color-info: var(--info);
-  --font-sans: var(--font-body);
-  --font-mono: var(--font-mono);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-ui);
 }
 
 body {
   background:
-    radial-gradient(1200px 600px at 10% -10%, color-mix(in oklab, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(
+      1200px 600px at 10% -10%,
+      color-mix(in oklab, var(--accent) 8%, transparent),
+      transparent 55%
+    ),
     var(--bg);
   color: var(--text);
-  font-family: var(--font-body), system-ui, sans-serif;
+  font-family: var(--font-ui);
+  letter-spacing: 0.03em;
+  scrollbar-gutter: stable;
+}
+
+/* Roomier scrollbars — easier to grab, less “tight” on the right edge */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: color-mix(in oklab, var(--muted) 55%, transparent)
+    color-mix(in oklab, var(--surface) 80%, transparent);
+}
+
+*::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+*::-webkit-scrollbar-track {
+  background: color-mix(in oklab, var(--bg) 70%, var(--surface));
+  border-left: 1px solid var(--border);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--muted) 45%, var(--surface-raised));
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+  min-height: 48px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--accent) 40%, var(--muted));
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.ol-scroll-host,
+.ol-scroll-pane {
+  scrollbar-gutter: stable;
 }
 
 /* Top nav active underline */
@@ -102,8 +273,15 @@ body {
 
 /* —— Map —— */
 .ol-actor-map .leaflet-container {
+  width: 100%;
+  height: 100%;
   background: var(--bg);
   font: inherit;
+}
+
+/* Dim OSM tiles on dark themes (no paid dark basemap required). */
+.ol-actor-map .ol-tiles--night {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
 }
 
 .ol-actor-map .leaflet-control-zoom a {
@@ -147,7 +325,7 @@ body {
 }
 
 .ol-map-popup__actor {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -156,7 +334,7 @@ body {
 }
 
 .ol-map-popup__ip code {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-ui);
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
@@ -170,7 +348,7 @@ body {
 }
 
 .ol-map-popup__pill {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-ui);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   padding: 0.15rem 0.4rem;
@@ -201,7 +379,7 @@ body {
 }
 
 .ol-map-popup__row code {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-ui);
   font-size: 0.68rem;
   color: var(--text);
   word-break: break-all;
@@ -213,6 +391,53 @@ body {
   font-size: 0.6rem;
   color: var(--muted);
   line-height: 1.35;
+}
+
+.ol-map-popup__detail {
+  margin-top: 0.65rem;
+  width: 100%;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.5rem;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.ol-map-popup__detail:hover {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ol-pd-fade,
+  .ol-map-popup__detail,
+  .ol-chart-bar,
+  .ol-case-pin {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.ol-pd-fade {
+  animation: ol-pd-in 280ms ease both;
+}
+
+@keyframes ol-pd-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .ol-pin {
@@ -251,6 +476,31 @@ body {
   animation: pin-pulse 2.4s ease-out infinite;
 }
 
+.ol-pin--focus .ol-pin__core {
+  background: var(--accent);
+  width: 11px;
+  height: 11px;
+  margin: 5.5px;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 45%, transparent);
+}
+
+.ol-pin--focus .ol-pin__ring {
+  border-color: var(--accent);
+  opacity: 1;
+  animation: pin-pulse 1.6s ease-out infinite;
+}
+
+.ol-pin--hot .ol-pin__core {
+  background: var(--accent);
+  transform: scale(1.15);
+}
+
+.ol-pin--hot .ol-pin__ring {
+  border-color: var(--accent);
+  opacity: 1;
+  animation: pin-pulse 1.2s ease-out infinite;
+}
+
 @keyframes pin-pulse {
   0% {
     transform: scale(0.85);
@@ -273,9 +523,18 @@ body {
   background: var(--surface-raised);
   border: 1px solid var(--accent);
   color: var(--accent);
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-ui);
   font-size: 0.7rem;
   font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease;
+}
+
+.ol-cluster:hover {
+  transform: scale(1.06);
+  border-color: var(--threat);
 }
 
 .ol-cluster--md {
@@ -295,4 +554,148 @@ body {
 .ol-attn-row:hover,
 .ol-attn-row:focus-within {
   background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+}
+
+/* Chart interaction */
+.ol-chart-bar {
+  cursor: pointer;
+  transition:
+    opacity 140ms ease,
+    filter 140ms ease;
+}
+
+.ol-chart-bar:hover,
+.ol-chart-bar[data-active="true"] {
+  filter: brightness(1.15);
+}
+
+.ol-chart-bar[data-dim="true"] {
+  opacity: 0.28;
+}
+
+.ol-chart-slice {
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+/* Case pins — soft interactive discs (pinpoint mode) */
+.ol-case-pin-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.ol-case-pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  font-family: var(--font-ui);
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.ol-case-pin__halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--pin-fill, var(--accent)) 18%, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ol-case-pin__disc {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--pin-fill, var(--accent)) 55%, #0c1014);
+  border: 1.5px solid color-mix(in oklab, var(--pin-fill, var(--accent)) 70%, #fff);
+  box-shadow:
+    0 1px 6px color-mix(in oklab, #000 35%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #fff 18%, transparent);
+}
+
+.ol-case-pin__n {
+  position: relative;
+  z-index: 1;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #f8fafc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.ol-case-pin--combo .ol-case-pin__disc {
+  border-radius: 999px;
+  inset: 6%;
+  background: color-mix(in oklab, var(--pin-fill, var(--accent)) 42%, #0c1014);
+  border-style: dashed;
+  border-width: 1.5px;
+}
+
+.ol-case-pin--combo .ol-case-pin__halo {
+  opacity: 0.4;
+  inset: -10%;
+}
+
+.ol-case-pin--combo .ol-case-pin__n {
+  font-size: 0.62rem;
+}
+
+.ol-case-pin--my .ol-case-pin__disc {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--accent) 35%, transparent),
+    0 1px 6px color-mix(in oklab, #000 35%, transparent);
+}
+
+.ol-case-pin.is-active {
+  transform: scale(1.12);
+  z-index: 2;
+}
+
+.ol-case-pin.is-active .ol-case-pin__halo {
+  opacity: 0.85;
+  background: color-mix(in oklab, var(--accent) 28%, transparent);
+}
+
+.ol-case-pin.is-active .ol-case-pin__disc {
+  border-color: var(--accent);
+}
+
+.ol-case-pin:hover {
+  transform: scale(1.08);
+}
+
+.ol-case-pin:hover .ol-case-pin__halo {
+  opacity: 0.75;
+}
+
+/* Telegram ops log */
+.ol-tg-log {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--accent) 4%, transparent),
+      transparent 8rem
+    ),
+    var(--bg);
+}
+
+.ol-tg-log-row--alt {
+  background: color-mix(in oklab, var(--surface) 55%, transparent);
+}
+
+.ol-tg-log-row:hover {
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+}
+
+.ol-tg-log-payload {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text);
 }

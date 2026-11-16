@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ThreatInfo } from "@/components/viz/ThreatInfo";
 
 export type ThreatBucket = {
   level: string;
@@ -26,14 +28,22 @@ function barColor(level: string): string {
 type ThreatBarsProps = {
   buckets: ThreatBucket[];
   title?: string;
+  /** Controlled selected band (for Overview threat filter). */
+  selected?: string | null;
+  onSelect?: (level: string | null) => void;
+  /** Prefer URL navigation when provided (SSR-friendly filters). */
+  hrefForLevel?: (level: string | null) => string;
 };
 
 /** Interactive horizontal threat distribution. */
 export function ThreatBars({
   buckets,
   title = "Threat distribution",
+  selected = null,
+  onSelect,
+  hrefForLevel,
 }: ThreatBarsProps) {
-  const [active, setActive] = useState<string | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const map = new Map(buckets.map((b) => [b.level, b.count]));
@@ -45,9 +55,8 @@ export function ThreatBars({
 
   const max = Math.max(1, ...rows.map((r) => r.count));
   const total = rows.reduce((s, r) => s + r.count, 0);
-  const focus = active
-    ? rows.find((r) => r.level === active)
-    : null;
+  const active = selected ?? hover;
+  const focus = active ? rows.find((r) => r.level === active) : null;
 
   return (
     <section
@@ -60,47 +69,82 @@ export function ThreatBars({
             {title}
           </h2>
           <p className="mt-0.5 text-xs text-[var(--muted)]">
-            Hover a bar to isolate a severity band.
+            Click a bar to filter Needs attention.
           </p>
         </div>
-        <p className="font-mono text-xs tabular-nums text-[var(--muted)]">
-          {focus
-            ? `${focus.level}: ${focus.count}`
-            : `n=${total}`}
-        </p>
+        <div className="flex flex-col items-end gap-1">
+          <ThreatInfo />
+          <p className="font-mono text-xs tabular-nums text-[var(--muted)]">
+            {focus
+              ? `${focus.level}: ${focus.count.toLocaleString()} / ${total.toLocaleString()}`
+              : `total ${total.toLocaleString()}`}
+          </p>
+        </div>
       </header>
 
       <ul className="space-y-2.5">
         {rows.map((row) => {
           const pct = Math.round((row.count / max) * 100);
           const dimmed = active !== null && active !== row.level;
+          const pressed = selected === row.level;
+          const className =
+            "group flex w-full cursor-pointer items-center gap-3 text-left";
+          const body = (
+            <>
+              <span className="w-24 shrink-0 font-mono text-[0.65rem] uppercase tracking-wide text-[var(--muted)] group-hover:text-[var(--text)]">
+                {row.level}
+              </span>
+              <span className="relative h-2.5 flex-1 bg-[var(--bg)]">
+                <span
+                  className="absolute inset-y-0 left-0 transition-[width,opacity] duration-200"
+                  style={{
+                    width: `${pct}%`,
+                    background: barColor(row.level),
+                    opacity: dimmed ? 0.25 : 1,
+                  }}
+                />
+              </span>
+              <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-[var(--text)]">
+                {row.count}
+              </span>
+            </>
+          );
+
+          if (hrefForLevel) {
+            const href = hrefForLevel(pressed ? null : row.level);
+            return (
+              <li key={row.level}>
+                <Link
+                  href={href}
+                  className={className}
+                  aria-current={pressed ? "page" : undefined}
+                  onMouseEnter={() => setHover(row.level)}
+                  onMouseLeave={() => setHover(null)}
+                  onFocus={() => setHover(row.level)}
+                  onBlur={() => setHover(null)}
+                >
+                  {body}
+                </Link>
+              </li>
+            );
+          }
+
           return (
             <li key={row.level}>
               <button
                 type="button"
-                className="group flex w-full items-center gap-3 text-left"
-                onMouseEnter={() => setActive(row.level)}
-                onMouseLeave={() => setActive(null)}
-                onFocus={() => setActive(row.level)}
-                onBlur={() => setActive(null)}
-                aria-pressed={active === row.level}
+                className={className}
+                onMouseEnter={() => setHover(row.level)}
+                onMouseLeave={() => setHover(null)}
+                onFocus={() => setHover(row.level)}
+                onBlur={() => setHover(null)}
+                onClick={() => {
+                  if (!onSelect) return;
+                  onSelect(selected === row.level ? null : row.level);
+                }}
+                aria-pressed={pressed}
               >
-                <span className="w-24 shrink-0 font-mono text-[0.65rem] uppercase tracking-wide text-[var(--muted)] group-hover:text-[var(--text)]">
-                  {row.level}
-                </span>
-                <span className="relative h-2.5 flex-1 bg-[var(--bg)]">
-                  <span
-                    className="absolute inset-y-0 left-0 transition-[width,opacity] duration-200"
-                    style={{
-                      width: `${pct}%`,
-                      background: barColor(row.level),
-                      opacity: dimmed ? 0.25 : 1,
-                    }}
-                  />
-                </span>
-                <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-[var(--text)]">
-                  {row.count}
-                </span>
+                {body}
               </button>
             </li>
           );

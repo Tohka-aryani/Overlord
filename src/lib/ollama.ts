@@ -15,9 +15,19 @@ Required keys and allowed values:
 - threat_level: Critical | High | Medium | Low | Info
 - category: Ransomware | Breach | Infostealer | Forum Actor | Hacktivism | Fraud | Vulnerability | Other
 - malaysia_relevance: Direct | Indirect | None
-- sector: Finance | Gov | Telco | Healthcare | Energy | Education | Other
+- sector: Finance | Gov | Telco | Healthcare | Energy | Education | Other (use Other if unsure — never invent a sector)
 - confidence: number from 0 to 1
-- rationale: one short sentence explaining the label`;
+- rationale: one short sentence explaining the label
+Use only the exact enum strings above.`;
+
+/** Prefer env, then NexAtlas default (llama3.2:latest). */
+const PREFERRED_MODELS = [
+  process.env.OLLAMA_MODEL?.trim(),
+  "llama3.2:latest", // NexAtlas Geospace V3 .env
+  "osint-llama3.1:latest",
+  "qwen3.5:9b",
+  "qwen2.5:14b",
+].filter((m): m is string => Boolean(m));
 
 function ollamaBaseUrl(): string {
   return (
@@ -26,12 +36,78 @@ function ollamaBaseUrl(): string {
   );
 }
 
-function ollamaModel(): string {
-  return process.env.OLLAMA_MODEL || "qwen2.5:14b";
-}
-
 /** Wall-clock timeout for Ollama /api/chat during entity classification. */
 export const CLASSIFY_ENTITY_TIMEOUT_MS = 120_000;
+
+let resolvedModel: string | null = null;
+let resolveAttemptedAt = 0;
+
+async function listOllamaModels(base: string): Promise<Set<string>> {
+  const res = await fetch(`${base}/api/tags`, {
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!res.ok) return new Set();
+  const data = (await res.json()) as {
+    models?: { name?: string; model?: string }[];
+  };
+  const names = new Set<string>();
+  for (const m of data.models ?? []) {
+    if (m.name) names.add(m.name);
+    if (m.model) names.add(m.model);
+  }
+  return names;
+}
+
+/**
+ * Pick an installed chat model: env → NexAtlas llama3.2 → other fallbacks.
+ * Caches for 60s so ingest loops don't hammer /api/tags.
+ */
+export async function resolveOllamaModel(): Promise<string | null> {
+  const now = Date.now();
+  if (resolvedModel && now - resolveAttemptedAt < 60_000) {
+    return resolvedModel;
+  }
+  resolveAttemptedAt = now;
+  const base = ollamaBaseUrl();
+  try {
+    const installed = await listOllamaModels(base);
+    if (installed.size === 0) {
+      resolvedModel = null;
+      return null;
+    }
+    for (const preferred of PREFERRED_MODELS) {
+      if (installed.has(preferred)) {
+        resolvedModel = preferred;
+        return preferred;
+      }
+      // allow tag-less match (llama3.2 matches llama3.2:latest)
+      const bare = preferred.split(":")[0];
+      for (const name of installed) {
+        if (name === bare || name.startsWith(`${bare}:`)) {
+          resolvedModel = name;
+          return name;
+        }
+      }
+    }
+    // last resort: first non-embedding model-ish name
+    for (const name of installed) {
+      if (!/embed|ocr|docling|vision/i.test(name)) {
+        resolvedModel = name;
+        return name;
+      }
+    }
+    resolvedModel = [...installed][0] ?? null;
+    return resolvedModel;
+  } catch {
+    resolvedModel = null;
+    return null;
+  }
+}
+
+/** Sync helper for logging / ingest metadata after resolve. */
+export function lastResolvedOllamaModel(): string | null {
+  return resolvedModel;
+}
 
 function extractJsonObject(text: string): unknown {
   const trimmed = text.trim();
@@ -55,6 +131,9 @@ function extractJsonObject(text: string): unknown {
 export async function classifyEntity(
   input: ClassifyEntityInput,
 ): Promise<ClassificationResult | null> {
+  const model = await resolveOllamaModel();
+  if (!model) return null;
+
   const userParts = [`Title: ${input.title}`];
   if (input.body?.trim()) {
     userParts.push(`Body: ${input.body.trim()}`);
@@ -69,7 +148,7 @@ export async function classifyEntity(
       headers: { "Content-Type": "application/json" },
       signal: AbortSignal.timeout(CLASSIFY_ENTITY_TIMEOUT_MS),
       body: JSON.stringify({
-        model: ollamaModel(),
+        model,
         stream: false,
         format: "json",
         messages: [
@@ -91,8 +170,9 @@ export async function classifyEntity(
       return null;
     }
 
-    const parsed = extractJsonObject(content);
-    const validated = classificationSchema.safeParse(parsed);
+    const validated = classificationSchema.safeParse(
+      extractJsonObject(content),
+    );
     return validated.success ? validated.data : null;
   } catch {
     return null;

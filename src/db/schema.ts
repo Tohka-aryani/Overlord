@@ -49,7 +49,7 @@ export const actorIps = pgTable(
   (t) => [uniqueIndex("actor_ips_ip_username_uidx").on(t.ip, t.username)],
 );
 
-/** ransomware.live victims / claims archive. */
+/** Ransomware victim / claim archive (ransomware.live + ransomlook.io). */
 export const ransomwareVictims = pgTable(
   "ransomware_victims",
   {
@@ -60,6 +60,13 @@ export const ransomwareVictims = pgTable(
     sector: text("sector"),
     attackDate: date("attack_date").notNull(),
     claimUrl: text("claim_url"),
+    /** Primary provider for display / last-writer preference. */
+    source: text("source").notNull().default("ransomware.live"),
+    /** All providers that have contributed this victim record. */
+    sources: text("sources")
+      .array()
+      .notNull()
+      .default(["ransomware.live"]),
     rawJson: jsonb("raw_json"),
     discoveredAt: timestamp("discovered_at", { withTimezone: true })
       .defaultNow()
@@ -90,6 +97,33 @@ export const newsItems = pgTable(
       .notNull(),
   },
   (t) => [uniqueIndex("news_items_link_uidx").on(t.link)],
+);
+
+/** Public Telegram channel posts (RSS bridge / preview ingest). */
+export const telegramMessages = pgTable(
+  "telegram_messages",
+  {
+    id: serial("id").primaryKey(),
+    channel: text("channel").notNull(),
+    messageId: text("message_id").notNull(),
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    text: text("text").notNull(),
+    mediaKind: text("media_kind"),
+    mediaUrl: text("media_url"),
+    postUrl: text("post_url").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("telegram_messages_channel_message_uidx").on(
+      t.channel,
+      t.messageId,
+    ),
+  ],
 );
 
 /** LLM labels for ransomware / news / high-signal actors. */

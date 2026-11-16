@@ -7,7 +7,8 @@ import { ingestRansomware } from "@/lib/ingest/ransomware";
  * handler exits without a terminal status; a platform hard kill (SIGKILL at
  * maxDuration) may still leave a row stuck in `running`.
  */
-export const maxDuration = 300;
+/** Global year dumps need rate-limit sleeps + bulk upsert. */
+export const maxDuration = 800;
 
 function authorizeCron(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
@@ -31,6 +32,7 @@ async function handle(request: Request) {
   }
 
   const url = new URL(request.url);
+  // country=ALL → recentvictims + yearly dumps (rate-limited).
   const country = url.searchParams.get("country") ?? "MY";
   const result = await ingestRansomware({ country });
 

@@ -17,7 +17,7 @@ Notice high-threat Malaysia-relevant signals fast — under ~10 seconds from lan
 
 ## Non-goals (v1)
 
-- Telegram live integration (placeholder tab only)
+- Telegram MTProto / bot admin (v1 uses public RSS bridge for @breachdetect)
 - Public internet deployment or multi-user auth
 - Fetching or browsing Tor `claim_url` / onion leak sites
 - Live scraping of every username list (use published datasets)

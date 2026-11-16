@@ -13,7 +13,8 @@
     "db:smoke": "tsx scripts/smoke-db.ts",
     "ollama:smoke": "tsx scripts/smoke-ollama.ts",
     "public-data:download": "tsx scripts/download-public-data.ts",
-    "public-data:import": "tsx scripts/import-public-data.ts"
+    "public-data:import": "tsx scripts/import-public-data.ts",
+    "ingest:loop": "tsx scripts/ingest-loop.ts"
   },
   "dependencies": {
     "@maxmind/geoip2-node": "^7.1.0",

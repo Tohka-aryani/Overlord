@@ -1,80 +1,32 @@
+"use client";
+
 import Link from "next/link";
-import { OverlordLogo } from "@/components/brand/OverlordLogo";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { THEME_LABELS, useTheme } from "@/components/theme/ThemeProvider";
 
+/** Slim footer so ops pages (Public Data) fit one viewport. */
 export function SiteFooter() {
-  return (
-    <footer className="mt-auto border-t border-[var(--border)] bg-[var(--surface)]">
-      <div className="mx-auto flex max-w-[90rem] flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:items-start lg:justify-between lg:px-8">
-        <div className="max-w-sm">
-          <OverlordLogo size={1.4} />
-          <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-            Malaysia-first dark-web monitoring console. Archive-first reads;
-            labels via LAN Ollama. Tor claim URLs are stored as text only.
-          </p>
-        </div>
+  const { t, locale } = useLocale();
+  const { theme } = useTheme();
 
-        <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3">
-          <div>
-            <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-              Console
-            </p>
-            <ul className="mt-2 space-y-1.5">
-              <li>
-                <Link href="/" className="text-[var(--text)] hover:text-[var(--accent)]">
-                  Overview
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/public-data"
-                  className="text-[var(--text)] hover:text-[var(--accent)]"
-                >
-                  Public Data
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/ransomware"
-                  className="text-[var(--text)] hover:text-[var(--accent)]"
-                >
-                  Ransomware
-                </Link>
-              </li>
-              <li>
-                <Link href="/news" className="text-[var(--text)] hover:text-[var(--accent)]">
-                  News
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-              Sources
-            </p>
-            <ul className="mt-2 space-y-1.5 text-[var(--muted)]">
-              <li>ransomware.live</li>
-              <li>Google News RSS</li>
-              <li>DarkForums IP intel</li>
-              <li>Threat-Actor usernames</li>
-            </ul>
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-              Ops
-            </p>
-            <ul className="mt-2 space-y-1.5 text-[var(--muted)]">
-              <li>Local / LAN v1</li>
-              <li>Telegram — coming soon</li>
-              <li>Theme: Night / Day</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div className="border-t border-[var(--border)]">
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-2 px-4 py-3 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-[var(--muted)] sm:px-6 lg:px-8">
-          <span>Overlord · Malaysia watch</span>
-          <span>Not for public internet exposure</span>
-        </div>
+  return (
+    <footer className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)]">
+      <div className="mx-auto flex max-w-[96rem] flex-wrap items-center justify-between gap-2 px-4 py-2 text-[0.6rem] uppercase tracking-[0.12em] text-[var(--muted)] sm:px-6 lg:px-8">
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="text-[var(--text)]">{t("footer.brand")}</span>
+          <Link href="/" className="hover:text-[var(--accent)]">
+            {t("nav.overview")}
+          </Link>
+          <Link href="/public-data" className="hover:text-[var(--accent)]">
+            {t("nav.publicData")}
+          </Link>
+          <Link href="/ransomware" className="hover:text-[var(--accent)]">
+            {t("nav.ransomware")}
+          </Link>
+        </span>
+        <span>
+          {t("footer.disclaimer")} · {THEME_LABELS[theme]} · {locale.toUpperCase()}
+        </span>
       </div>
     </footer>
   );

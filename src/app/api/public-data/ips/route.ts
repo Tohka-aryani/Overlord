@@ -2,7 +2,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { connection, NextResponse } from "next/server";
 import { db } from "@/db";
 import { actorIps, actors } from "@/db/schema";
-import { jitterCountryCentroid } from "@/lib/geo/country-centroids";
+import { jitterCountryCentroidStable } from "@/lib/geo/country-centroids";
 
 /**
  * IPs for an actor. Prefer Malaysia-first ordering when ISO is known.
@@ -100,7 +100,7 @@ export async function GET(request: Request) {
   const items = rows.map((r) => {
     const mapPoint =
       includeMap && r.countryIso
-        ? jitterCountryCentroid(r.countryIso)
+        ? jitterCountryCentroidStable(r.countryIso, r.ip)
         : null;
     return {
       ...r,

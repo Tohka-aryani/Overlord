@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "publicData": "Public Data",
+    "ransomware": "Ransomware",
+    "news": "News",
+    "telegram": "Telegram",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "en": "EN",
+    "ms": "MS"
+  },
+  "footer": {
+    "brand": "Overlord · MY watch",
+    "disclaimer": "LAN / local · not for public exposure"
+  },
+  "overview": {
+    "eyebrow": "Command surface",
+    "title": "Overview",
+    "lede": "Malaysia-first pulse across ransomware victims, news, and public actors.",
+    "mapTitle": "Cases by country",
+    "mapCountry": "Country",
+    "mapPinpoint": "Pinpoint",
+    "mapCountryHint": "Layer only — fill intensity scales with case count",
+    "mapPinpointHint": "Pins only — stacked design when countries are close; click to focus"
+  },
+  "telegram": {
+    "title": "Telegram",
+    "lede": "Live archive of @{channel} — polled into Postgres.",
+    "refresh": "Refresh",
+    "empty": "No messages yet. Trigger ingest with POST /api/ingest/telegram.",
+    "archiveOnly": "Archive only — open on Telegram to reply",
+    "open": "Open",
+    "postsStored": "{n} posts stored",
+    "lastIngest": "last ingest {status}",
+    "noIngest": "no ingest yet"
+  },
+  "common": {
+    "loading": "Loading…",
+    "refresh": "Refresh"
+  }
+}
