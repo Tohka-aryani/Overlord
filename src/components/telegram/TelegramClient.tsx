@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { formatRelativeWhen, formatWhen } from "@/lib/format-when";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { TelegramQueryResult } from "@/lib/telegram-query";
@@ -29,23 +35,53 @@ export function TelegramClient({ initial }: TelegramClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [draftQ, setDraftQ] = useState(initial.q ?? "");
+  const [activeQ, setActiveQ] = useState(initial.q ?? "");
+
+  const load = useCallback(
+    (q: string) => {
+      startTransition(async () => {
+        setError(null);
+        try {
+          const params = new URLSearchParams({
+            channel: data.channel,
+            limit: "300",
+          });
+          const trimmed = q.trim();
+          if (trimmed) params.set("q", trimmed);
+          const res = await fetch(`/api/telegram?${params}`, {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const next = (await res.json()) as TelegramQueryResult;
+          setData(next);
+          setActiveQ(next.q ?? trimmed);
+          setExpanded(null);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      });
+    },
+    [data.channel],
+  );
 
   const refresh = useCallback(() => {
-    startTransition(async () => {
-      setError(null);
-      try {
-        const res = await fetch(
-          `/api/telegram?channel=${encodeURIComponent(data.channel)}&limit=300`,
-          { cache: "no-store" },
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const next = (await res.json()) as TelegramQueryResult;
-        setData(next);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      }
-    });
-  }, [data.channel]);
+    load(activeQ);
+  }, [load, activeQ]);
+
+  const runSearch = useCallback(() => {
+    load(draftQ);
+  }, [load, draftQ]);
+
+  const clearSearch = useCallback(() => {
+    setDraftQ("");
+    load("");
+  }, [load]);
+
+  useEffect(() => {
+    setDraftQ(initial.q ?? "");
+    setActiveQ(initial.q ?? "");
+  }, [initial]);
 
   const entries = useMemo(() => {
     return [...data.items].sort((a, b) => {
@@ -60,6 +96,9 @@ export function TelegramClient({ initial }: TelegramClientProps) {
   const ingestLine = last
     ? t("telegram.lastIngest").replace("{status}", last.status)
     : t("telegram.noIngest");
+  const emptyLabel = activeQ.trim()
+    ? t("telegram.emptySearch")
+    : t("telegram.empty");
 
   return (
     <main className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col overflow-hidden">
@@ -77,6 +116,9 @@ export function TelegramClient({ initial }: TelegramClientProps) {
               {" · "}
               {ingestLine}
               {last?.finishedAt ? ` · ${formatWhen(last.finishedAt)}` : ""}
+              {activeQ.trim()
+                ? ` · filter “${activeQ.trim()}” · ${entries.length} shown`
+                : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -98,6 +140,45 @@ export function TelegramClient({ initial }: TelegramClientProps) {
             </button>
           </div>
         </div>
+
+        <form
+          className="mt-3 flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            runSearch();
+          }}
+        >
+          <label className="sr-only" htmlFor="tg-keyword">
+            {t("telegram.search")}
+          </label>
+          <input
+            id="tg-keyword"
+            type="search"
+            value={draftQ}
+            onChange={(e) => setDraftQ(e.target.value)}
+            placeholder={t("telegram.searchPlaceholder")}
+            className="min-w-[14rem] flex-1 border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 font-[family-name:var(--font-ui)] text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+            autoComplete="off"
+          />
+          <button
+            type="submit"
+            disabled={pending}
+            className="border border-[var(--accent)] bg-[var(--accent)] px-3 py-1.5 font-[family-name:var(--font-ui)] text-[0.6rem] uppercase tracking-[0.12em] text-[var(--accent-contrast)] disabled:opacity-50"
+          >
+            {t("telegram.search")}
+          </button>
+          {activeQ.trim() || draftQ.trim() ? (
+            <button
+              type="button"
+              onClick={clearSearch}
+              disabled={pending}
+              className="border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 font-[family-name:var(--font-ui)] text-[0.6rem] uppercase tracking-[0.12em] text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-50"
+            >
+              {t("telegram.clearSearch")}
+            </button>
+          ) : null}
+        </form>
+
         {error ? (
           <p className="mt-2 text-sm text-[var(--threat)]">{error}</p>
         ) : null}
@@ -106,7 +187,7 @@ export function TelegramClient({ initial }: TelegramClientProps) {
       <div className="ol-tg-log ol-scroll-pane min-h-0 flex-1 overflow-auto">
         {entries.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-[var(--muted)] sm:px-6">
-            {t("telegram.empty")}
+            {emptyLabel}
           </p>
         ) : (
           <div className="min-w-[40rem]">

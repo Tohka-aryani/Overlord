@@ -45,6 +45,7 @@ next-env.d.ts
 # agent / local scratch
 .superpowers/
 
-# large / local datasets (keep data/README.md tracked)
+# large / local datasets (keep data/README.md + keyword example tracked)
 /data/**
 !/data/README.md
+!/data/tor-keywords.example.txt

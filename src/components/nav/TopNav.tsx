@@ -13,6 +13,7 @@ const NAV = [
   { href: "/ransomware", key: "ransomware" },
   { href: "/news", key: "news" },
   { href: "/telegram", key: "telegram" },
+  { href: "/tor", key: "tor" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {

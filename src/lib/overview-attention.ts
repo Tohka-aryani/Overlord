@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import type { NeedsAttentionItem } from "@/lib/overview";
+import { resolveOpenableSourceUrl } from "@/lib/source-links";
 import { threatSortRank } from "@/lib/threat-rank";
 
 export type AttentionSortKey = "threat" | "signal" | "source" | "when";
@@ -21,6 +22,8 @@ type RawRow = {
   threat_level: string | null;
   at: string | null;
   link: string | null;
+  source: string | null;
+  sources: string[] | null;
 };
 
 /**
@@ -54,7 +57,9 @@ export async function queryAttention(
         v."group" AS detail,
         lc.threat_level,
         COALESCE(v.attack_date::text, v.discovered_at::text) AS at,
-        v.claim_url AS link
+        v.claim_url AS link,
+        v.source,
+        v.sources
       FROM ransomware_victims v
       LEFT JOIN latest_class lc
         ON lc.entity_type = 'ransomware' AND lc.entity_id = v.id
@@ -66,12 +71,14 @@ export async function queryAttention(
         COALESCE(n.keyword_hit, n.source, 'News') AS detail,
         lc.threat_level,
         COALESCE(n.published_at::text, n.created_at::text) AS at,
-        n.link AS link
+        n.link AS link,
+        COALESCE(n.source, 'news') AS source,
+        NULL::text[] AS sources
       FROM news_items n
       LEFT JOIN latest_class lc
         ON lc.entity_type = 'news' AND lc.entity_id = n.id
     )
-    SELECT kind, id, title, detail, threat_level, at, link
+    SELECT kind, id, title, detail, threat_level, at, link, source, sources
     FROM unioned
     ${
       threat && threat !== "All"
@@ -87,20 +94,30 @@ export async function queryAttention(
     : ((rows as { rows?: RawRow[] }).rows ?? []);
 
   const all: NeedsAttentionItem[] = rawList.map((r) => {
-    const external = (r.link ?? "").trim();
-    const isHttp =
-      external.startsWith("http://") || external.startsWith("https://");
-    const isOnion = /\.onion(\/|$)/i.test(external);
-    let href: string;
-    if (r.kind === "news" && isHttp) {
-      href = external;
-    } else if (r.kind === "ransomware" && isHttp && !isOnion) {
-      href = external;
-    } else if (r.kind === "ransomware") {
-      href = `/ransomware?q=${encodeURIComponent(r.title)}`;
-    } else {
-      href = "/news";
+    if (r.kind === "news") {
+      const external = (r.link ?? "").trim();
+      const isHttp =
+        external.startsWith("http://") || external.startsWith("https://");
+      return {
+        key: `${r.kind}:${r.id}`,
+        kind: r.kind,
+        title: r.title,
+        detail: r.detail,
+        threatLevel: r.threat_level,
+        at: r.at,
+        href: isHttp ? external : "/news",
+        external: isHttp,
+      };
     }
+
+    const openable = resolveOpenableSourceUrl({
+      victim: r.title,
+      group: r.detail,
+      source: r.source ?? "ransomware.live",
+      sources: r.sources,
+      claimUrl: r.link,
+    });
+
     return {
       key: `${r.kind}:${r.id}`,
       kind: r.kind,
@@ -108,8 +125,9 @@ export async function queryAttention(
       detail: r.detail,
       threatLevel: r.threat_level,
       at: r.at,
-      href,
-      external: isHttp && (r.kind === "news" || !isOnion),
+      href:
+        openable?.url ?? `/ransomware?q=${encodeURIComponent(r.title)}`,
+      external: Boolean(openable),
     };
   });
 

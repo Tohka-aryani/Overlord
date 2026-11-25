@@ -5,6 +5,7 @@
     "ransomware": "Ransomware",
     "news": "Berita",
     "telegram": "Telegram",
+    "tor": "Tor",
     "settings": "Tetapan"
   },
   "settings": {
@@ -26,18 +27,54 @@
     "mapCountry": "Negara",
     "mapPinpoint": "Titik",
     "mapCountryHint": "Lapisan sahaja — keamatan isian mengikut bilangan kes",
-    "mapPinpointHint": "Pin sahaja — reka bentuk bertindan bila negara berhampiran; klik untuk fokus"
+    "mapPinpointHint": "Pin sahaja — reka bentuk bertindan bila negara berhampiran; klik untuk fokus",
+    "refreshFeeds": "Muat semula suapan",
+    "refreshOk": "Arkib dikemas kini daripada suapan langsung.",
+    "refreshPartial": "Muat semula selesai dengan beberapa ralat — arkib dimuat semula.",
+    "refreshFailed": "Muat semula gagal."
   },
   "telegram": {
     "title": "Telegram",
     "lede": "Arkib langsung @{channel} — disimpan dalam Postgres.",
     "refresh": "Muat semula",
     "empty": "Tiada mesej lagi. Picu ingest dengan POST /api/ingest/telegram.",
+    "emptySearch": "Tiada siaran sepadan dengan kata kunci itu.",
     "archiveOnly": "Arkib sahaja — buka di Telegram untuk balas",
     "open": "Buka",
     "postsStored": "{n} siaran disimpan",
     "lastIngest": "ingest terakhir {status}",
-    "noIngest": "belum ada ingest"
+    "noIngest": "belum ada ingest",
+    "search": "Cari",
+    "searchPlaceholder": "Kata kunci dalam teks mesej…",
+    "clearSearch": "Kosongkan"
+  },
+  "tor": {
+    "title": "Hasil kata kunci Tor",
+    "lede": "Halaman dark web ditemui melalui carian kata kunci Apify — disimpan tempatan; pelayar tidak membuka .onion.",
+    "refresh": "Muat semula",
+    "empty": "Belum ada hasil Tor. Tambah kata kunci dalam data/tor-keywords.txt, tetapkan APIFY_TOKEN, kemudian POST /api/ingest/tor-sites.",
+    "emptySearch": "Tiada hasil Tor sepadan dengan penapis itu.",
+    "sitesStored": "{n} URL unik",
+    "lastIngest": "scrape terakhir {status}",
+    "noIngest": "belum ada scrape",
+    "search": "Cari",
+    "searchPlaceholder": "URL, tajuk, atau petikan…",
+    "clearSearch": "Kosongkan",
+    "statusFilter": "Penapis status",
+    "status": {
+      "all": "Semua",
+      "up": "Naik",
+      "down": "Turun",
+      "unknown": "Tidak diketahui"
+    },
+    "colStatus": "Status",
+    "colHost": "Hos",
+    "colTitle": "Tajuk",
+    "colSnippet": "Petikan",
+    "colChecked": "Pertama kali",
+    "copyUrl": "Salin URL",
+    "copied": "Disalin",
+    "footer": "Arkib sahaja · pendua dilangkau · buka dalam Tor Browser"
   },
   "common": {
     "loading": "Memuatkan…",

@@ -1,0 +1,7 @@
+# Copy to data/tor-keywords.txt (or set TOR_KEYWORDS_FILE).
+# One keyword per line. # comments ignored.
+# Every run sends ALL keywords; Apify returns at most APIFY_TOR_MAX_ITEMS hits (default 10).
+
+Malaysia
+ransomware
+data leak

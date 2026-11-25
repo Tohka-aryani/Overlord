@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  formatRelativeWhen,
-  formatWhen,
-  isOpenableClaimUrl,
-} from "@/lib/format-when";
+import { formatRelativeWhen, formatWhen } from "@/lib/format-when";
 import { countryLabel } from "@/lib/geo/country-names";
 import type { CountryBriefingResult } from "@/lib/country-briefing";
+import { resolveOpenableSourceUrl } from "@/lib/source-links";
 
 type CountryBriefingPanelProps = {
   country: string | null;
@@ -190,19 +187,29 @@ export function CountryBriefingPanel({
                     <span className="text-[var(--text)]">{v.victim}</span>
                     <span className="font-[family-name:var(--font-ui)] tabular-nums">
                       {v.group} · {v.attackDate}
-                      {isOpenableClaimUrl(v.claimUrl) ? (
-                        <>
-                          {" · "}
-                          <a
-                            href={v.claimUrl!}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[var(--accent)] hover:underline"
-                          >
-                            source
-                          </a>
-                        </>
-                      ) : null}
+                      {(() => {
+                        const openable = resolveOpenableSourceUrl({
+                          victim: v.victim,
+                          group: v.group,
+                          source: v.source,
+                          sources: v.sources,
+                          claimUrl: v.claimUrl,
+                        });
+                        if (!openable) return null;
+                        return (
+                          <>
+                            {" · "}
+                            <a
+                              href={openable.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[var(--accent)] hover:underline"
+                            >
+                              {openable.label}
+                            </a>
+                          </>
+                        );
+                      })()}
                     </span>
                   </li>
                 ))}

@@ -6,15 +6,12 @@ import { ColumnChart } from "@/components/viz/ColumnChart";
 import { DonutChart } from "@/components/viz/DonutChart";
 import { HBarChart } from "@/components/viz/HBarChart";
 import { ThreatInfo } from "@/components/viz/ThreatInfo";
-import {
-  formatRelativeWhen,
-  formatWhen,
-  isOpenableClaimUrl,
-} from "@/lib/format-when";
+import { formatRelativeWhen, formatWhen } from "@/lib/format-when";
 import type {
   RansomwareItem,
   RansomwareQueryResult,
 } from "@/lib/ransomware-query";
+import { resolveOpenableSourceUrl } from "@/lib/source-links";
 import type { RansomwareStats } from "@/lib/ransomware-stats";
 import {
   fillDaySeries,
@@ -558,23 +555,36 @@ export function RansomwareClient({ initial }: RansomwareClientProps) {
                           <p className="mt-0.5 text-xs text-[var(--muted)]">
                             {secondary}
                           </p>
-                          {item.claimUrl?.trim() ? (
-                            isOpenableClaimUrl(item.claimUrl) ? (
-                              <a
-                                href={item.claimUrl.trim()}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-1 inline-block max-w-full truncate font-mono text-[0.65rem] text-[var(--accent)] underline-offset-2 hover:underline"
-                                title={item.claimUrl}
-                              >
-                                Open source →
-                              </a>
-                            ) : (
-                              <p className="mt-1 break-all font-mono text-[0.6rem] text-[var(--muted)]">
-                                {item.claimUrl.trim()}
-                              </p>
-                            )
-                          ) : null}
+                          {(() => {
+                            const openable = resolveOpenableSourceUrl({
+                              victim: item.victim,
+                              group: item.group,
+                              source: item.source,
+                              sources: item.sources,
+                              claimUrl: item.claimUrl,
+                            });
+                            if (openable) {
+                              return (
+                                <a
+                                  href={openable.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-1 inline-block max-w-full truncate font-mono text-[0.65rem] text-[var(--accent)] underline-offset-2 hover:underline"
+                                  title={openable.url}
+                                >
+                                  Open {openable.label} →
+                                </a>
+                              );
+                            }
+                            if (item.claimUrl?.trim()) {
+                              return (
+                                <p className="mt-1 break-all font-mono text-[0.6rem] text-[var(--muted)]">
+                                  {item.claimUrl.trim()}
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
                           {open ? (
                             <div className="mt-2 max-w-xl space-y-1 text-xs text-[var(--muted)]">
                               <p>
@@ -597,24 +607,36 @@ export function RansomwareClient({ initial }: RansomwareClientProps) {
                                 {item.classification?.rationale ?? "—"}
                               </p>
                               <p className="break-all font-mono">
-                                {isOpenableClaimUrl(item.claimUrl) ? (
-                                  <>
-                                    Source:{" "}
-                                    <a
-                                      href={item.claimUrl!.trim()}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-[var(--accent)] underline-offset-2 hover:underline"
-                                    >
-                                      {item.claimUrl!.trim()}
-                                    </a>
-                                  </>
-                                ) : (
-                                  <>
-                                    Claim (onion / text only):{" "}
-                                    {item.claimUrl?.trim() || "—"}
-                                  </>
-                                )}
+                                {(() => {
+                                  const openable = resolveOpenableSourceUrl({
+                                    victim: item.victim,
+                                    group: item.group,
+                                    source: item.source,
+                                    sources: item.sources,
+                                    claimUrl: item.claimUrl,
+                                  });
+                                  if (openable) {
+                                    return (
+                                      <>
+                                        Source ({openable.label}):{" "}
+                                        <a
+                                          href={openable.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="text-[var(--accent)] underline-offset-2 hover:underline"
+                                        >
+                                          {openable.url}
+                                        </a>
+                                      </>
+                                    );
+                                  }
+                                  return (
+                                    <>
+                                      Claim (onion / text only):{" "}
+                                      {item.claimUrl?.trim() || "—"}
+                                    </>
+                                  );
+                                })()}
                               </p>
                               <p className="font-mono">
                                 Sources:{" "}

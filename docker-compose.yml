@@ -27,6 +27,12 @@ services:
       OLLAMA_MODEL: llama3.2:latest
       IPINFO_TOKEN: ${IPINFO_TOKEN:-}
       CRON_SECRET: ${CRON_SECRET:-}
+      APIFY_TOKEN: ${APIFY_TOKEN:-}
+      APIFY_TOR_ACTOR_ID: ${APIFY_TOR_ACTOR_ID:-igolaizola~tor-dark-web-scraper}
+      APIFY_TOR_MAX_ITEMS: ${APIFY_TOR_MAX_ITEMS:-10}
+      TOR_KEYWORDS_FILE: /app/data/tor-keywords.txt
+    volumes:
+      - ./data/tor-keywords.txt:/app/data/tor-keywords.txt:ro
     depends_on:
       db:
         condition: service_healthy

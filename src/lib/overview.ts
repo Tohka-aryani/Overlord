@@ -73,6 +73,7 @@ const INGEST_SOURCES: { source: string; label: string }[] = [
   { source: "telegram:breachdetect", label: "Telegram" },
   { source: "public-data", label: "Public Data" },
   { source: "classify-backfill", label: "Classify backfill" },
+  { source: "tor-sites", label: "Tor Apify" },
 ];
 
 export type OverviewAttentionOpts = {

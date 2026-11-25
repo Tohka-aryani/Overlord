@@ -19,7 +19,7 @@ Notice high-threat Malaysia-relevant signals fast — under ~10 seconds from lan
 
 - Telegram MTProto / bot admin (v1 uses public RSS bridge for @breachdetect)
 - Public internet deployment or multi-user auth
-- Fetching or browsing Tor `claim_url` / onion leak sites
+- Tor dump download / recursive crawl; `/tor` stores Apify keyword hits only (unique URLs, light archive)
 - Live scraping of every username list (use published datasets)
 
 ## Principles (Design with Intent)

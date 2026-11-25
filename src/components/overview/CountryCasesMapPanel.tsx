@@ -8,7 +8,7 @@ import { CountryBriefingPanel } from "@/components/overview/CountryBriefingPanel
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { CountryCaseCount } from "@/lib/overview";
 
-/** Overview geographic stage — Country choropleth / Pinpoint toggle + dossier. */
+/** Overview geographic stage — windowed map + country dossier. */
 export function CountryCasesMapPanel({
   rows,
 }: {
@@ -19,8 +19,8 @@ export function CountryCasesMapPanel({
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
   return (
-    <div className="w-full">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3 px-4 sm:px-6 lg:px-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-[family-name:var(--font-ui)] text-sm uppercase tracking-[0.08em] text-[var(--text)]">
             {t("overview.mapTitle")}
@@ -57,15 +57,15 @@ export function CountryCasesMapPanel({
           ))}
         </div>
       </div>
-      {/* Full-bleed continuous layer (escapes max-width column) */}
-      <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2">
+
+      <div className="relative overflow-hidden border border-[var(--border)] bg-[var(--surface)]">
         <CountryCasesMap
           rows={rows}
           mode={mode}
-          height={680}
+          height={320}
           activeCountry={selectedCountry}
           onCountrySelect={setSelectedCountry}
-          className="w-full min-h-[32rem] rounded-none border-x-0 sm:min-h-[38rem] lg:min-h-[42rem]"
+          className="w-full min-h-[16rem] rounded-none border-0 sm:min-h-[18rem] lg:min-h-[20rem]"
         />
         <CountryBriefingPanel
           country={selectedCountry}

@@ -16,7 +16,7 @@ See [PRODUCT.md](./PRODUCT.md) and [DESIGN.md](./DESIGN.md) for intent and visua
 ```bash
 cp .env.example .env
 # Set CRON_SECRET to a non-empty value before triggering ingest
-docker compose up db -d
+docker compose up db tor -d
 npm install
 npm run db:migrate   # if migrations are not applied yet
 npm run dev
@@ -31,6 +31,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Type:** Aces07 for all UI text (`public/fonts/ACES07_Regular.ttf`)
 - **Overview map:** Country choropleth / Pinpoint toggle (Natural Earth GeoJSON)
 - **Telegram:** chatroom-style archive of `@breachdetect`
+- **Tor:** `/tor` dashboard — Apify keyword search hits (unique URLs; duplicates skipped)
 - **Charts:** click/hover filters on timeline, donut, and bar charts where filters exist
 
 ### Continuous ingest
@@ -41,7 +42,7 @@ Keep archive feeds fresh while `next dev` / `next start` is up:
 npm run ingest:loop
 ```
 
-Cycles ransomware.live (MY + periodic ALL), RansomLook (90d), news, Telegram, and classify-backfill every 15 minutes (`INGEST_CYCLE_MS`, `INGEST_ALL_EVERY`, `INGEST_BASE_URL` overridable).
+Cycles ransomware.live (MY + periodic ALL), RansomLook (90d), news, Telegram, and classify-backfill every 15 minutes (`INGEST_CYCLE_MS`, `INGEST_ALL_EVERY`, `INGEST_BASE_URL` overridable). Apify Tor keyword scrape runs every `INGEST_TOR_EVERY` cycles (default 4 ≈ hourly, max 10 new hits).
 
 Full stack (web + db):
 
@@ -66,6 +67,11 @@ npm run db:migrate
 | `IPINFO_TOKEN` | Optional IP enrichment (`/api/public-data/ip-detail`) |
 | `CRON_SECRET` | Protects ingest trigger routes (`x-cron-secret` or `Authorization: Bearer`) |
 | `NEXT_PUBLIC_CARTO_API_KEY` | CARTO basemap tiles for Public Data map (required to clear “API KEY REQUIRED” watermark) |
+| `APIFY_TOKEN` | Apify API token for Tor keyword scrape |
+| `APIFY_TOR_ACTOR_ID` | Actor id (default `igolaizola~tor-dark-web-scraper`) |
+| `APIFY_TOR_MAX_ITEMS` | Max page hits per scrape (default `10`) |
+| `TOR_KEYWORDS_FILE` | Keyword list path (default `data/tor-keywords.txt`) |
+| `INGEST_TOR_EVERY` | Run Tor Apify scrape every N ingest-loop cycles (default `4`) |
 
 ### Ollama (LAN)
 
@@ -96,6 +102,10 @@ curl -sS -X POST "http://localhost:3000/api/ingest/news" \
 # Telegram (@breachdetect via public RSS bridge)
 curl -sS -X POST "http://localhost:3000/api/ingest/telegram" \
   -H "x-cron-secret: $CRON_SECRET"
+
+# Tor keyword scrape via Apify (edit data/tor-keywords.txt; needs APIFY_TOKEN)
+curl -sS -X POST "http://localhost:3000/api/ingest/tor-sites" \
+  -H "x-cron-secret: $CRON_SECRET"
 ```
 
 Bearer form also works:
@@ -110,6 +120,8 @@ Archive reads (no secret):
 - `GET /api/ransomware?country=MY` — default dashboard scope
 - `GET /api/ransomware?country=ALL` — global archive (Ransomware UI “Global” toggle); read-only, not used for ingest
 - `GET /api/news`
+- `GET /api/tor` — Apify Tor keyword hits (`?q=` `&status=up|down|unknown`)
+- `GET /api/telegram`
 
 ## Public Data import
 
@@ -142,6 +154,6 @@ GeoLite2 Country MMDB is downloaded into `data/` for ISO enrichment but **not** 
 
 - Local / LAN v1 only — no public auth yet
 - `GET /api/news` and `GET /api/ransomware?country=ALL` return the full archive with no pagination or cap (acceptable on LAN v1)
-- Never fetch Tor `claim_url` values (stored as text only)
+- Browser never opens `.onion` links; Tor hits come from Apify keyword search (duplicates skipped by unique URL)
 - Telegram tab archives [@breachdetect](https://t.me/breachdetect) via RSS bridge (`TELEGRAM_CHANNELS`); schedule `POST /api/ingest/telegram`
 - `data/` is gitignored (large binaries / username dumps)

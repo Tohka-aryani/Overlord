@@ -153,3 +153,33 @@ export const ingestRuns = pgTable("ingest_runs", {
   counts: jsonb("counts"),
   error: text("error"),
 });
+
+/**
+ * Apify Tor keyword-search hits (light archive).
+ * Unique on normalized `url` — ingest skips duplicates.
+ */
+export const torHits = pgTable(
+  "tor_hits",
+  {
+    id: serial("id").primaryKey(),
+    url: text("url").notNull(),
+    host: text("host"),
+    query: text("query"),
+    statusCode: integer("status_code"),
+    ok: integer("ok").notNull().default(0),
+    title: text("title"),
+    searchTitle: text("search_title"),
+    searchDescription: text("search_description"),
+    textSnippet: text("text_snippet"),
+    error: text("error"),
+    apifyRunId: text("apify_run_id"),
+    apifyDatasetId: text("apify_dataset_id"),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [uniqueIndex("tor_hits_url_uidx").on(t.url)],
+);

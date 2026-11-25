@@ -19,6 +19,8 @@ export type CountryVictimHit = {
   group: string;
   attackDate: string;
   claimUrl: string | null;
+  source: string;
+  sources: string[];
 };
 
 export type CountryBriefingResult = {
@@ -87,6 +89,8 @@ export async function queryCountryVictims(
       group: ransomwareVictims.group,
       attackDate: ransomwareVictims.attackDate,
       claimUrl: ransomwareVictims.claimUrl,
+      source: ransomwareVictims.source,
+      sources: ransomwareVictims.sources,
     })
     .from(ransomwareVictims)
     .where(eq(ransomwareVictims.country, iso))
@@ -99,6 +103,8 @@ export async function queryCountryVictims(
     group: r.group,
     attackDate: String(r.attackDate),
     claimUrl: r.claimUrl,
+    source: r.source,
+    sources: r.sources ?? [],
   }));
 }
 

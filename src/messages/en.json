@@ -5,6 +5,7 @@
     "ransomware": "Ransomware",
     "news": "News",
     "telegram": "Telegram",
+    "tor": "Tor",
     "settings": "Settings"
   },
   "settings": {
@@ -26,18 +27,54 @@
     "mapCountry": "Country",
     "mapPinpoint": "Pinpoint",
     "mapCountryHint": "Layer only — fill intensity scales with case count",
-    "mapPinpointHint": "Pins only — stacked design when countries are close; click to focus"
+    "mapPinpointHint": "Pins only — stacked design when countries are close; click to focus",
+    "refreshFeeds": "Refresh feeds",
+    "refreshOk": "Archive updated from live feeds.",
+    "refreshPartial": "Refresh finished with some feed errors — archive reloaded.",
+    "refreshFailed": "Refresh failed."
   },
   "telegram": {
     "title": "Telegram",
     "lede": "Live archive of @{channel} — polled into Postgres.",
     "refresh": "Refresh",
     "empty": "No messages yet. Trigger ingest with POST /api/ingest/telegram.",
+    "emptySearch": "No posts match that keyword.",
     "archiveOnly": "Archive only — open on Telegram to reply",
     "open": "Open",
     "postsStored": "{n} posts stored",
     "lastIngest": "last ingest {status}",
-    "noIngest": "no ingest yet"
+    "noIngest": "no ingest yet",
+    "search": "Search",
+    "searchPlaceholder": "Keyword in message text…",
+    "clearSearch": "Clear"
+  },
+  "tor": {
+    "title": "Tor keyword hits",
+    "lede": "Dark-web pages found via Apify keyword search — stored locally; browser never opens .onion.",
+    "refresh": "Refresh",
+    "empty": "No Tor hits yet. Add keywords to data/tor-keywords.txt, set APIFY_TOKEN, then POST /api/ingest/tor-sites.",
+    "emptySearch": "No Tor hits match that filter.",
+    "sitesStored": "{n} unique URLs",
+    "lastIngest": "last scrape {status}",
+    "noIngest": "no scrape yet",
+    "search": "Search",
+    "searchPlaceholder": "URL, title, or snippet…",
+    "clearSearch": "Clear",
+    "statusFilter": "Status filter",
+    "status": {
+      "all": "All",
+      "up": "Up",
+      "down": "Down",
+      "unknown": "Unknown"
+    },
+    "colStatus": "Status",
+    "colHost": "Host",
+    "colTitle": "Title",
+    "colSnippet": "Snippet",
+    "colChecked": "First seen",
+    "copyUrl": "Copy URL",
+    "copied": "Copied",
+    "footer": "Archive only · duplicates skipped · open in Tor Browser"
   },
   "common": {
     "loading": "Loading…",

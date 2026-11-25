@@ -2,6 +2,10 @@
 
 Large binaries and scraped username lists live here and are **not** committed.
 
+## Tor keywords (Apify)
+
+Copy `tor-keywords.example.txt` → `tor-keywords.txt` (or set `TOR_KEYWORDS_FILE`). One keyword per line; `#` comments ignored. Every scrape sends all keywords; Apify returns at most `APIFY_TOR_MAX_ITEMS` hits (default 10). Duplicate URLs are never stored twice.
+
 ## Download
 
 ```bash

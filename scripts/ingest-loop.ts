@@ -1,7 +1,8 @@
 /**
  * Continuous archive ingest for all Overlord sources (LAN / local).
  *
- * Cycles: ransomware.live (MY + periodic ALL) → ransomlook → news → telegram → classify.
+ * Cycles: ransomware.live (MY + periodic ALL) → ransomlook → news → telegram → classify
+ * (+ tor-sites Apify keyword scrape every N cycles).
  * Respects ransomware.live ~1 req/min free-tier pacing inside the ingest modules.
  *
  * Usage: npm run ingest:loop
@@ -12,6 +13,7 @@ const BASE = process.env.INGEST_BASE_URL ?? "http://127.0.0.1:3000";
 const SECRET = process.env.CRON_SECRET ?? "";
 const CYCLE_MS = Number(process.env.INGEST_CYCLE_MS ?? 15 * 60_000); // 15 min between full cycles
 const ALL_EVERY = Number(process.env.INGEST_ALL_EVERY ?? 4); // every N cycles run country=ALL
+const TOR_EVERY = Number(process.env.INGEST_TOR_EVERY ?? 4); // Apify Tor scrape ≈ hourly
 
 if (!SECRET) {
   console.error("CRON_SECRET is required (.env)");
@@ -52,6 +54,13 @@ async function runCycle(cycle: number): Promise<void> {
     });
   }
 
+  if (cycle % TOR_EVERY === 0) {
+    jobs.push({
+      name: "tor-sites Apify",
+      path: "/api/ingest/tor-sites",
+    });
+  }
+
   console.log(`\n[${stamp()}] cycle ${cycle} — ${jobs.length} jobs`);
 
   for (const job of jobs) {
@@ -74,7 +83,7 @@ async function runCycle(cycle: number): Promise<void> {
 
 async function main() {
   console.log(
-    `[${stamp()}] Overlord ingest loop · base=${BASE} · cycle=${CYCLE_MS / 1000}s · ALL every ${ALL_EVERY}`,
+    `[${stamp()}] Overlord ingest loop · base=${BASE} · cycle=${CYCLE_MS / 1000}s · ALL every ${ALL_EVERY} · Tor every ${TOR_EVERY}`,
   );
   let cycle = 0;
   // Run immediately, then on interval.

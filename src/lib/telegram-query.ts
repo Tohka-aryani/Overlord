@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { ingestRuns, telegramMessages } from "@/db/schema";
 
@@ -16,6 +16,7 @@ export type TelegramMessageRow = {
 
 export type TelegramQueryResult = {
   channel: string;
+  q: string;
   items: TelegramMessageRow[];
   total: number;
   lastIngest: {
@@ -34,11 +35,24 @@ function iso(d: Date | null | undefined): string | null {
 export async function queryTelegram(opts?: {
   channel?: string;
   limit?: number;
+  q?: string;
 }): Promise<TelegramQueryResult> {
   const channel = (opts?.channel ?? "breachdetect").trim().replace(/^@/, "").toLowerCase();
   const limit = Math.min(300, Math.max(1, opts?.limit ?? 300));
+  const q = (opts?.q ?? "").trim().slice(0, 120);
 
-  const where = eq(telegramMessages.channel, channel);
+  const conditions = [eq(telegramMessages.channel, channel)];
+  if (q) {
+    const pattern = `%${q.replace(/[%_]/g, "\\$&")}%`;
+    conditions.push(
+      or(
+        ilike(telegramMessages.text, pattern),
+        ilike(telegramMessages.messageId, pattern),
+        ilike(telegramMessages.mediaKind, pattern),
+      )!,
+    );
+  }
+  const where = and(...conditions);
 
   const [countRow] = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -66,6 +80,7 @@ export async function queryTelegram(opts?: {
 
   return {
     channel,
+    q,
     total: countRow?.count ?? 0,
     items: rows.map((r) => ({
       id: r.id,

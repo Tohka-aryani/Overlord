@@ -19,6 +19,7 @@
   "dependencies": {
     "@maxmind/geoip2-node": "^7.1.0",
     "drizzle-orm": "^0.45.4",
+    "esbuild": "^0.28.2",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "next": "16.4.6",
